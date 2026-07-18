@@ -1,0 +1,23 @@
+import DashboardController from './DashboardController'
+import WarehouseStockController from './WarehouseStockController'
+import TransactionActivityController from './TransactionActivityController'
+import UserManagementController from './UserManagementController'
+import AccessManagementController from './AccessManagementController'
+import StockTransactionController from './StockTransactionController'
+import ApprovalController from './ApprovalController'
+import OperationsController from './OperationsController'
+import Settings from './Settings'
+
+const Controllers = {
+    DashboardController: Object.assign(DashboardController, DashboardController),
+    WarehouseStockController: Object.assign(WarehouseStockController, WarehouseStockController),
+    TransactionActivityController: Object.assign(TransactionActivityController, TransactionActivityController),
+    UserManagementController: Object.assign(UserManagementController, UserManagementController),
+    AccessManagementController: Object.assign(AccessManagementController, AccessManagementController),
+    StockTransactionController: Object.assign(StockTransactionController, StockTransactionController),
+    ApprovalController: Object.assign(ApprovalController, ApprovalController),
+    OperationsController: Object.assign(OperationsController, OperationsController),
+    Settings: Object.assign(Settings, Settings),
+}
+
+export default Controllers
