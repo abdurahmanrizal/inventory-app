@@ -15,4 +15,14 @@ class DeliveryDetail extends Model
     {
         return $this->belongsTo(StockRequestDetail::class, 'stock_request_detail_id');
     }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(Item::class);
+    }
+
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class);
+    }
 }

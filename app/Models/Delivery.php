@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Delivery extends Model
 {
-    protected $fillable = ['number', 'stock_request_id', 'delivery_date', 'status', 'notes', 'delivered_by'];
+    protected $fillable = ['number', 'stock_request_id', 'delivery_date', 'status', 'notes', 'delivered_by', 'download_count'];
 
-    protected $casts = ['delivery_date' => 'date'];
+    protected $casts = ['delivery_date' => 'date', 'download_count' => 'integer'];
 
     public function details(): HasMany
     {

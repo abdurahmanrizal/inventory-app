@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockAdjustment extends Model
@@ -14,5 +15,25 @@ class StockAdjustment extends Model
     public function details(): HasMany
     {
         return $this->hasMany(StockAdjustmentDetail::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function assignedApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_approver_id');
+    }
+
+    public function opname(): BelongsTo
+    {
+        return $this->belongsTo(StockOpname::class, 'stock_opname_id');
     }
 }

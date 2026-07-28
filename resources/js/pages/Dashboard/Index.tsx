@@ -51,15 +51,20 @@ const referenceStatusLabel: Record<string, string> = {
   waiting_approval: "Menunggu Approval",
   rejected: "Ditolak",
   completed: "Selesai",
+  approved: "Disetujui",
+  received: "Diterima Unit",
+  delivering: "Dalam Pengiriman",
+  cancelled: "Dibatalkan",
 };
 
 const referenceLabel: Record<string, string> = {
   stock_in: "Stok Masuk",
   stock_out: "Stok Keluar",
   transfer: "Mutasi",
+  stock_request: "Request Stok Unit",
 };
 
-export default function Index({ stats, recent }) {
+export default function Index({ stats, recent, scopeLabel, quickActions }) {
   const today = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -78,52 +83,71 @@ export default function Index({ stats, recent }) {
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs text-slate-300">
               <Sparkles size={14} className="text-emerald-400" />
-              Ringkasan operasional hari ini
+              {scopeLabel}
             </div>
             <h2 className="max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl">
               Pantau pergerakan stok dengan lebih cepat.
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
-              Semua nilai persediaan, transaksi, dan antrean approval dalam satu
-              tampilan.
+              Ringkasan hanya menampilkan persediaan dan transaksi yang
+              berkaitan dengan cakupan akun Anda.
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <p className="text-xs capitalize text-slate-400 sm:mr-2">{today}</p>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/25 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            {(quickActions.stockIn ||
+              quickActions.stockOut ||
+              quickActions.stockRequest) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/25 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    Buat Transaksi
+                    <ChevronDown size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48 rounded-xl border-slate-200 bg-white p-1.5 text-slate-700 shadow-xl"
                 >
-                  Buat Transaksi
-                  <ChevronDown size={16} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-48 rounded-xl border-slate-200 bg-white p-1.5 text-slate-700 shadow-xl"
-              >
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/stock-transactions?type=stock_in"
-                    className="cursor-pointer rounded-lg px-3 py-2.5 focus:bg-emerald-50 focus:text-emerald-700"
-                  >
-                    <PackagePlus size={16} />
-                    Buat Stock In
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/stock-transactions?type=stock_out"
-                    className="cursor-pointer rounded-lg px-3 py-2.5 focus:bg-rose-50 focus:text-rose-700"
-                  >
-                    <PackageMinus size={16} />
-                    Buat Stock Out
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {quickActions.stockIn && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/stock-transactions?type=stock_in"
+                        className="cursor-pointer rounded-lg px-3 py-2.5 focus:bg-emerald-50 focus:text-emerald-700"
+                      >
+                        <PackagePlus size={16} />
+                        Buat Stock In
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {quickActions.stockOut && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/stock-transactions?type=stock_out"
+                        className="cursor-pointer rounded-lg px-3 py-2.5 focus:bg-rose-50 focus:text-rose-700"
+                      >
+                        <PackageMinus size={16} />
+                        Buat Stock Out
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {quickActions.stockRequest && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/operations/fulfillment"
+                        className="cursor-pointer rounded-lg px-3 py-2.5 focus:bg-blue-50 focus:text-blue-700"
+                      >
+                        <Boxes size={16} />
+                        Request Stok Unit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </section>
@@ -139,14 +163,14 @@ export default function Index({ stats, recent }) {
         <StatCard
           label="Total Stok"
           value={Number(stats.stockQty).toLocaleString("id-ID")}
-          helper="Akumulasi di seluruh gudang"
+          helper={`Sesuai cakupan: ${scopeLabel}`}
           icon={Boxes}
           tone="blue"
         />
         <StatCard
           label="Menunggu Approval"
           value={stats.pendingApproval}
-          helper="Transaksi perlu tindakan manajer"
+          helper="Pengajuan terkait yang masih menunggu"
           icon={ClipboardCheck}
           tone="amber"
         />
@@ -170,7 +194,11 @@ export default function Index({ stats, recent }) {
             </p>
           </div>
           <Link
-            href="/stock-transactions"
+            href={
+              quickActions.stockRequest
+                ? "/operations/fulfillment"
+                : "/stock-transactions"
+            }
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 transition hover:text-emerald-600"
           >
             Lihat semua <ArrowRight size={16} />
@@ -228,7 +256,7 @@ export default function Index({ stats, recent }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 pr-6 text-slate-500">
-                      {formatDateTime(transaction.document_date)}
+                      {formatDateTime(transaction.date)}
                     </td>
                   </tr>
                 ))}

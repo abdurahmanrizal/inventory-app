@@ -1,11 +1,5 @@
 import { Form, Head } from "@inertiajs/react";
-import {
-  Activity,
-  Boxes,
-  CheckCircle2,
-  LockKeyhole,
-  ShieldCheck,
-} from "lucide-react";
+import { Activity, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react";
 import InputError from "@/components/input-error";
 import PasswordInput from "@/components/password-input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,7 +13,7 @@ const inputClass =
 export default function Login({ status }: Props) {
   return (
     <div className="min-h-screen bg-[#071220] lg:grid lg:grid-cols-[1.05fr_0.95fr]">
-      <Head title="Masuk ke WMS Core" />
+      <Head title="Masuk" />
 
       <section className="relative hidden min-h-screen overflow-hidden border-r border-white/[0.06] p-12 text-white lg:flex lg:flex-col xl:p-16">
         <div className="pointer-events-none absolute -left-32 -top-40 size-[560px] rounded-full bg-emerald-500/15 blur-[100px]" />
@@ -27,13 +21,17 @@ export default function Login({ status }: Props) {
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
 
         <div className="relative flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-2xl bg-emerald-500 shadow-xl shadow-emerald-950/40">
-            <Boxes size={24} />
-          </span>
+          <img
+            src="/brand/bas-stockflow-mark.png"
+            alt=""
+            className="size-12 rounded-2xl object-cover shadow-xl shadow-emerald-950/40"
+          />
           <div>
-            <p className="text-lg font-semibold tracking-tight">WMS Core</p>
+            <p className="text-lg font-semibold tracking-tight">
+              BAS StockFlow
+            </p>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Inventory Control
+              Inventory Workflow
             </p>
           </div>
         </div>
@@ -59,20 +57,23 @@ export default function Login({ status }: Props) {
           </div>
         </div>
         <p className="relative text-xs text-slate-600">
-          © {new Date().getFullYear()} WMS Core · Warehouse Management System
+          © {new Date().getFullYear()} BAS StockFlow · Warehouse Management
+          System
         </p>
       </section>
 
       <main className="relative flex min-h-screen items-center justify-center bg-[#f7f9fc] px-5 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-              <Boxes size={21} />
-            </span>
+            <img
+              src="/brand/bas-stockflow-mark.png"
+              alt=""
+              className="size-11 rounded-xl object-cover shadow-lg shadow-emerald-500/20"
+            />
             <div>
-              <p className="font-semibold text-slate-950">WMS Core</p>
+              <p className="font-semibold text-slate-950">BAS StockFlow</p>
               <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Inventory Control
+                Inventory Workflow
               </p>
             </div>
           </div>
@@ -166,7 +167,7 @@ export default function Login({ status }: Props) {
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-60"
                   >
                     {processing && <Spinner />}
-                    {processing ? "Memverifikasi..." : "Masuk ke WMS"}
+                    {processing ? "Memverifikasi..." : "Masuk ke BAS StockFlow"}
                   </button>
                 </>
               )}

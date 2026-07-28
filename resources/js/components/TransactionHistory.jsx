@@ -50,20 +50,32 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                     key={transaction.id}
                     className="transition hover:bg-slate-50/70"
                   >
-                    <td className="whitespace-nowrap px-6 py-4 font-semibold text-slate-900">
-                      {transaction.number}
+                    <td className="px-6 py-4 font-semibold text-slate-900">
+                      <div>{transaction.number}</div>
+                      {transaction.approvals?.length > 0 && (
+                        <div className="mt-1 space-y-1.5">
+                          {transaction.approvals.map((approval, index) => (
+                            <div
+                              key={approval.id || index}
+                              className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500"
+                            >
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                                Level {approval.level}
+                              </span>
+                              <span>{approval.approver?.name || "-"}</span>
+                              <span className="rounded-full px-2 py-0.5 font-medium ring-1 ring-inset ring-slate-200">
+                                {approval.status}
+                              </span>
+                              {approval.remarks && <span>{approval.remarks}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
-                      <span>
-                        {transaction.source_warehouse?.name || "Eksternal"}
-                      </span>
-                      <ArrowRight
-                        size={13}
-                        className="mx-2 inline text-slate-300"
-                      />
-                      <span>
-                        {transaction.destination_warehouse?.name || "Eksternal"}
-                      </span>
+                      <span>{transaction.source_warehouse?.name || "Eksternal"}</span>
+                      <ArrowRight size={13} className="mx-2 inline text-slate-300" />
+                      <span>{transaction.destination_warehouse?.name || "Eksternal"}</span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                       {formatDateTime(transaction.document_date)}
@@ -76,12 +88,34 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <a
-                        href={`/stock-transactions/${transaction.id}/document`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                      >
-                        <Download size={14} /> Unduh PDF
-                      </a>
+                      <div className="flex justify-end gap-2">
+                        {transaction.receipt_image_path && (
+                          <a
+                            href={`/stock-transactions/${transaction.id}/evidence/receipt`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-700"
+                          >
+                            <FileText size={14} /> Nota
+                          </a>
+                        )}
+                        {transaction.payment_proof_image_path && (
+                          <a
+                            href={`/stock-transactions/${transaction.id}/evidence/payment`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-700"
+                          >
+                            <FileText size={14} /> Bayar
+                          </a>
+                        )}
+                        <a
+                          href={`/stock-transactions/${transaction.id}/document`}
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                          <Download size={14} /> PDF
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 );

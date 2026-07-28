@@ -1,10 +1,12 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import {
-  Boxes,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
-  Database,
+  Building2,
+  MapPin,
+  PackageSearch,
+  Ruler,
   Truck,
   SlidersHorizontal,
   LayoutDashboard,
@@ -15,6 +17,7 @@ import {
   ShieldCheck,
   Warehouse,
   History,
+  ChartNoAxesCombined,
   UsersRound,
   KeyRound,
   X,
@@ -52,10 +55,34 @@ const links = [
       url.startsWith("/stock-transactions") && !url.includes("type=stock_in"),
   ],
   [
-    "Master Data",
-    "/operations/master-data",
-    Database,
-    (url) => url.startsWith("/operations/master-data"),
+    "Master Supplier",
+    "/operations/master-data?master=supplier",
+    Building2,
+    (url) =>
+      url.startsWith("/operations/master-data") &&
+      (!url.includes("master=") || url.includes("master=supplier")),
+  ],
+  [
+    "Master Item",
+    "/operations/master-data?master=item",
+    PackageSearch,
+    (url) =>
+      url.startsWith("/operations/master-data") && url.includes("master=item"),
+  ],
+  [
+    "Master Lokasi",
+    "/operations/master-data?master=location",
+    MapPin,
+    (url) =>
+      url.startsWith("/operations/master-data") &&
+      url.includes("master=location"),
+  ],
+  [
+    "Master Satuan",
+    "/operations/master-data?master=uom",
+    Ruler,
+    (url) =>
+      url.startsWith("/operations/master-data") && url.includes("master=uom"),
   ],
   [
     "Request Stok Unit",
@@ -70,7 +97,7 @@ const links = [
     (url) => url.startsWith("/operations/inventory-control"),
   ],
   [
-    "Approval Manajer",
+    "Approval",
     "/approvals",
     ClipboardCheck,
     (url) => url.startsWith("/approvals"),
@@ -89,6 +116,12 @@ const links = [
       url.startsWith("/access-management") ||
       url.startsWith("/role-management") ||
       url.startsWith("/permission-management"),
+  ],
+  [
+    "Laporan Persediaan",
+    "/reports",
+    ChartNoAxesCombined,
+    (url) => url.startsWith("/reports"),
   ],
   [
     "Riwayat Aktivitas",
@@ -120,7 +153,12 @@ export default function AppLayout({ children, title, fullWidth = false }) {
     "warehouse_admin_wet",
   ].includes(role);
   const canCreateStockOut = canCreateStockTransaction || role === "unit_user";
-  const canApprove = ["superadmin", "unit_manager"].includes(role);
+  const canApprove = [
+    "superadmin",
+    "unit_manager",
+    "warehouse_admin_dry",
+    "warehouse_admin_wet",
+  ].includes(role);
 
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-slate-900">
@@ -130,13 +168,15 @@ export default function AppLayout({ children, title, fullWidth = false }) {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_65%)]" />
         <div className="relative flex h-20 items-center justify-between border-b border-white/[0.07] px-6">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-950/30">
-              <Boxes size={22} strokeWidth={2} />
-            </span>
+            <img
+              src="/brand/bas-stockflow-mark.png"
+              alt=""
+              className="size-11 rounded-xl object-cover shadow-lg shadow-slate-950/30"
+            />
             <div>
-              <p className="font-semibold tracking-tight">WMS Core</p>
+              <p className="font-semibold tracking-tight">BAS StockFlow</p>
               <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
-                Inventory Control
+                Inventory Workflow
               </p>
             </div>
           </Link>
@@ -156,7 +196,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
           <div className="space-y-1">
             {links
               .filter(([label]) =>
-                label === "Master Data"
+                label.startsWith("Master ")
                   ? role === "superadmin" && hasPermission("master.manage")
                   : label === "Manajemen User"
                     ? role === "superadmin"
@@ -169,17 +209,19 @@ export default function AppLayout({ children, title, fullWidth = false }) {
                           : label === "Opname & Adjustment"
                             ? canManageWarehouse &&
                               hasPermission("stock.adjust")
-                            : label === "Approval Manajer"
+                            : label === "Approval"
                               ? canApprove && hasPermission("approval.act")
                               : label === "Riwayat Aktivitas"
                                 ? canApprove && hasPermission("activity.view")
-                                : label === "Stok Gudang"
-                                  ? hasPermission("stock.view")
-                                  : label === "Request Stok Unit"
-                                    ? hasPermission("stock.request") ||
-                                      hasPermission("stock.ship") ||
-                                      hasPermission("stock.receive")
-                                    : true,
+                                : label === "Laporan Persediaan"
+                                  ? hasPermission("report.view")
+                                  : label === "Stok Gudang"
+                                    ? hasPermission("stock.view")
+                                    : label === "Request Stok Unit"
+                                      ? hasPermission("stock.request") ||
+                                        hasPermission("stock.ship") ||
+                                        hasPermission("stock.receive")
+                                      : true,
               )
               .map(([label, href, Icon, isActive]) => {
                 const active = isActive(url);
@@ -278,7 +320,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
         />
       )}
 
-      <main className="min-h-screen lg:ml-72">
+      <main className="min-h-screen min-w-0 w-full overflow-x-hidden lg:pl-72">
         <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <button
             aria-label="Buka menu"
@@ -289,7 +331,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
           </button>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-600">
-              Warehouse Management
+              BAS StockFlow
             </p>
             <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-slate-950">
               {title}
@@ -316,7 +358,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
         processing={loggingOut}
         tone="amber"
         title="Keluar dari aplikasi?"
-        description="Sesi Anda akan diakhiri dan Anda perlu masuk kembali untuk mengakses WMS."
+        description="Sesi Anda akan diakhiri dan Anda perlu masuk kembali untuk mengakses BAS StockFlow."
         confirmLabel="Ya, keluar"
       />
     </div>

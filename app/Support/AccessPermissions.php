@@ -15,13 +15,14 @@ final class AccessPermissions
         'stock.out' => ['Stock Out / Mutasi', 'Membuat dan melihat stock out atau mutasi'],
         'stock.view' => ['Stok Gudang', 'Melihat saldo stok gudang sesuai cakupan akun'],
         'activity.view' => ['Riwayat Aktivitas', 'Melihat ledger dan aktivitas transaksi'],
+        'report.view' => ['Laporan Persediaan', 'Melihat kartu stok, slow moving, opname, dan nilai persediaan'],
     ];
 
     public const DEFAULTS = [
         'superadmin' => ['*'],
-        'warehouse_admin_dry' => ['stock.ship', 'stock.adjust', 'stock.in', 'stock.out', 'stock.view'],
-        'warehouse_admin_wet' => ['stock.ship', 'stock.adjust', 'stock.in', 'stock.out', 'stock.view'],
+        'warehouse_admin_dry' => ['approval.act', 'stock.ship', 'stock.adjust', 'stock.in', 'stock.out', 'stock.view', 'report.view'],
+        'warehouse_admin_wet' => ['approval.act', 'stock.ship', 'stock.adjust', 'stock.in', 'stock.out', 'stock.view', 'report.view'],
         'unit_user' => ['stock.request', 'stock.receive', 'stock.out', 'stock.view'],
-        'unit_manager' => ['approval.act', 'stock.view', 'activity.view'],
+        'unit_manager' => ['approval.act', 'stock.view', 'activity.view', 'report.view'],
     ];
 }

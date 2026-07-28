@@ -1,6 +1,7 @@
 import DashboardController from './DashboardController'
 import WarehouseStockController from './WarehouseStockController'
 import TransactionActivityController from './TransactionActivityController'
+import InventoryReportController from './InventoryReportController'
 import UserManagementController from './UserManagementController'
 import AccessManagementController from './AccessManagementController'
 import StockTransactionController from './StockTransactionController'
@@ -12,6 +13,7 @@ const Controllers = {
     DashboardController: Object.assign(DashboardController, DashboardController),
     WarehouseStockController: Object.assign(WarehouseStockController, WarehouseStockController),
     TransactionActivityController: Object.assign(TransactionActivityController, TransactionActivityController),
+    InventoryReportController: Object.assign(InventoryReportController, InventoryReportController),
     UserManagementController: Object.assign(UserManagementController, UserManagementController),
     AccessManagementController: Object.assign(AccessManagementController, AccessManagementController),
     StockTransactionController: Object.assign(StockTransactionController, StockTransactionController),

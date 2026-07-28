@@ -4,13 +4,16 @@ import { Head, useForm } from "@inertiajs/react";
 import {
   AlertCircle,
   CalendarDays,
+  ChevronDown,
   CheckCircle2,
+  Image,
   PackagePlus,
   Plus,
+  Search,
   Trash2,
   Warehouse,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConfirmActionDialog from "../../components/confirm-action-dialog";
 import TransactionHistory from "../../components/TransactionHistory";
 import AppLayout from "../../layouts/AppLayout";
@@ -25,6 +28,96 @@ const emptyDetail = () => ({
   batch_no: "",
   expired_at: "",
 });
+
+function SearchableProductSelect({ value, items, onChange }) {
+  const selected = items.find((item) => String(item.id) === String(value));
+  const [query, setQuery] = useState(
+    selected ? `${selected.code} — ${selected.name}` : "",
+  );
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setQuery(selected ? `${selected.code} — ${selected.name}` : "");
+  }, [value, selected?.code, selected?.name]);
+
+  const filteredItems = items
+    .filter((item) =>
+      `${item.code} ${item.name}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+    )
+    .slice(0, 50);
+
+  return (
+    <div
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+          setQuery(selected ? `${selected.code} — ${selected.name}` : "");
+        }
+      }}
+    >
+      <Search
+        size={16}
+        className="pointer-events-none absolute left-3.5 top-3.5 z-10 text-slate-400"
+      />
+      <input
+        value={query}
+        autoComplete="off"
+        placeholder="Cari kode atau nama produk"
+        className={`${fieldClass} pl-10 pr-9`}
+        onFocus={(event) => {
+          setOpen(true);
+          event.currentTarget.select();
+        }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setOpen(true);
+          if (!event.target.value) {
+            onChange("");
+          }
+        }}
+      />
+      <ChevronDown
+        size={16}
+        className={`pointer-events-none absolute right-3.5 top-3.5 text-slate-400 transition ${open ? "rotate-180" : ""}`}
+      />
+      {open && (
+        <div className="absolute z-30 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          {filteredItems.length ? (
+            filteredItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(String(item.id));
+                  setQuery(`${item.code} — ${item.name}`);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-emerald-50 ${
+                  String(item.id) === String(value)
+                    ? "bg-emerald-50 font-semibold text-emerald-700"
+                    : "text-slate-700"
+                }`}
+              >
+                <span>{item.code} — {item.name}</span>
+                {String(item.id) === String(value) && (
+                  <CheckCircle2 size={15} />
+                )}
+              </button>
+            ))
+          ) : (
+            <p className="px-3 py-6 text-center text-xs text-slate-500">
+              Produk tidak ditemukan.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Index({
   transactions,
@@ -41,6 +134,8 @@ export default function Index({
     source_warehouse_id: "",
     destination_warehouse_id: isUnitRequest ? userWarehouse?.id : "",
     supplier_name: "",
+    receipt_image: null,
+    payment_proof_image: null,
     document_date: new Date().toISOString().slice(0, 10),
     notes: "",
     details: [emptyDetail()],
@@ -73,6 +168,7 @@ export default function Index({
 
   const confirmSubmit = () => {
     form.post("/stock-transactions", {
+      forceFormData: true,
       preserveScroll: true,
       onSuccess: () => {
         setConfirmOpen(false);
@@ -229,7 +325,7 @@ export default function Index({
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+        <section className="relative z-10 overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
             <div className="flex items-center gap-3">
               <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -282,20 +378,13 @@ export default function Index({
                     <span className="text-xs font-semibold text-slate-600">
                       Produk
                     </span>
-                    <select
-                      className={fieldClass}
+                    <SearchableProductSelect
                       value={detail.item_id}
-                      onChange={(event) =>
-                        setDetail(index, "item_id", event.target.value)
+                      items={items}
+                      onChange={(itemId) =>
+                        setDetail(index, "item_id", itemId)
                       }
-                    >
-                      <option value="">Pilih produk</option>
-                      {items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.code} — {item.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                   {!isUnitRequest && (
                     <label className="space-y-2 md:col-span-2">
@@ -359,6 +448,54 @@ export default function Index({
             ))}
           </div>
         </section>
+
+        {!isUnitRequest && (
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+              <span className="grid size-9 place-items-center rounded-xl bg-violet-50 text-violet-700">
+                <Image size={18} />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Dokumen pendukung
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Gambar otomatis dikompres saat transaksi disimpan.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+              {[
+                ["receipt_image", "Foto nota", "Foto nota pembelian dari supplier"],
+                ["payment_proof_image", "Bukti pembayaran", "Foto transfer atau bukti pembayaran"],
+              ].map(([key, label, description]) => (
+                <label
+                  key={key}
+                  className="group cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-5 transition hover:border-emerald-300 hover:bg-emerald-50/40"
+                >
+                  <span className="flex items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm group-hover:text-emerald-700">
+                      <Image size={18} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">{label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{description}</span>
+                    </span>
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="mt-4 block w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700 file:shadow-sm"
+                    onChange={(event) => form.setData(key, event.target.files?.[0] || null)}
+                  />
+                  <span className="mt-2 block text-[11px] text-slate-400">
+                    JPG, PNG, atau WebP · maksimal 10 MB
+                  </span>
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-6">
           <label className="space-y-2">

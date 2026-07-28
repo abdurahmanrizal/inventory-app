@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:336
+* @see app/Http/Controllers/OperationsController.php:612
 * @route '/workflow-approvals/{approval}'
 */
 export const act = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ act.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:336
+* @see app/Http/Controllers/OperationsController.php:612
 * @route '/workflow-approvals/{approval}'
 */
 act.url = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ act.url = (args: { approval: string | number | { id: string | number } } | [appr
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:336
+* @see app/Http/Controllers/OperationsController.php:612
 * @route '/workflow-approvals/{approval}'
 */
 act.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -59,7 +59,7 @@ act.post = (args: { approval: string | number | { id: string | number } } | [app
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:336
+* @see app/Http/Controllers/OperationsController.php:612
 * @route '/workflow-approvals/{approval}'
 */
 const actForm = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -69,7 +69,7 @@ const actForm = (args: { approval: string | number | { id: string | number } } |
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:336
+* @see app/Http/Controllers/OperationsController.php:612
 * @route '/workflow-approvals/{approval}'
 */
 actForm.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

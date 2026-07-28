@@ -6,7 +6,7 @@ import AppLayout from "@/layouts/app-layout";
 import AuthLayout from "@/layouts/auth-layout";
 import SettingsLayout from "@/layouts/settings/layout";
 
-const appName = import.meta.env.VITE_APP_NAME || "Laravel";
+const appName = import.meta.env.VITE_APP_NAME || "BAS StockFlow";
 
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -19,10 +19,12 @@ createInertiaApp({
       "Operations/",
       "WarehouseStock/",
       "TransactionActivity/",
+      "StockRequests",
       "UserManagement/",
       "AccessManagement/",
       "RoleManagement/",
       "PermissionManagement/",
+      "Reports/",
     ];
 
     if (

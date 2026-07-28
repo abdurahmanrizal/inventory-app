@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <title>Surat Jalan {{ $delivery->number }}</title>
+    <style>
+        @page { margin: 32px 38px; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #172033; font-family: "DejaVu Sans", sans-serif; font-size: 10px; line-height: 1.45; }
+        .header { border-bottom: 3px solid #10b981; padding-bottom: 12px; }
+        .header-table, .items, .meta, .signatures { border-collapse: collapse; width: 100%; }
+        .header-table td { padding: 0; vertical-align: middle; }
+        .brand-logo { display: block; height: 48px; width: 48px; }
+        .brand-copy { padding-left: 10px !important; }
+        .brand { color: #0f172a; font-size: 18px; font-weight: bold; }
+        .brand-sub { color: #64748b; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; }
+        .doc-title { color: #0f172a; font-size: 17px; font-weight: bold; margin: 24px 0 3px; text-align: center; text-transform: uppercase; }
+        .doc-number { color: #64748b; margin-bottom: 20px; text-align: center; }
+        .meta { background: #f8fafc; border: 1px solid #e2e8f0; padding: 13px 15px; }
+        .meta td { padding: 4px 5px; vertical-align: top; width: 25%; }
+        .label { color: #64748b; display: block; font-size: 8px; margin-bottom: 3px; text-transform: uppercase; }
+        .value { color: #172033; font-weight: bold; }
+        .section-title { color: #0f172a; font-size: 11px; font-weight: bold; margin: 20px 0 8px; }
+        .items th { background: #0f243e; color: white; font-size: 8px; padding: 9px 7px; text-align: left; text-transform: uppercase; }
+        .items td { border-bottom: 1px solid #e2e8f0; padding: 9px 7px; vertical-align: top; }
+        .center { text-align: center; } .right { text-align: right; }
+        .notes { background: #f8fafc; border-left: 3px solid #94a3b8; color: #475569; min-height: 42px; padding: 10px 12px; }
+        .signatures { margin-top: 38px; table-layout: fixed; text-align: center; }
+        .signatures td { padding: 0 12px; width: 33.33%; }
+        .sign-space { height: 62px; }
+        .sign-line { border-top: 1px solid #64748b; padding-top: 5px; }
+        .sign-role { color: #64748b; font-size: 8px; margin-top: 2px; }
+        .footer { bottom: 0; color: #94a3b8; font-size: 8px; left: 0; position: fixed; right: 0; text-align: center; }
+    </style>
+</head>
+<body>
+@php
+    $logoPath = public_path('brand/bas-stockflow-mark.png');
+    $logoDataUri = file_exists($logoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath)) : null;
+@endphp
+<div class="header"><table class="header-table"><tr>
+    @if($logoDataUri)<td style="width:48px"><img class="brand-logo" src="{{ $logoDataUri }}" alt="Logo BAS StockFlow"></td>@endif
+    <td class="brand-copy"><div class="brand">BAS StockFlow</div><div class="brand-sub">Inventory Workflow</div></td>
+</tr></table></div>
+<div class="doc-title">Surat Jalan</div>
+<div class="doc-number">Nomor dokumen: {{ $delivery->number }}</div>
+<table class="meta">
+    <tr>
+        <td><span class="label">Tanggal Pengiriman</span><span class="value">{{ $delivery->delivery_date->format('d/m/Y') }}</span></td>
+        <td><span class="label">Nomor Permintaan</span><span class="value">{{ $stockRequest->number }}</span></td>
+        <td><span class="label">Gudang Asal</span><span class="value">{{ $stockRequest->fromWarehouse?->name ?? '-' }}</span></td>
+        <td><span class="label">Unit Tujuan</span><span class="value">{{ $stockRequest->toWarehouse?->name ?? '-' }}</span></td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="label">Pemohon</span><span class="value">{{ $stockRequest->requester?->name ?? '-' }}</span></td>
+        <td colspan="2"><span class="label">Disetujui Manajer Gudang Utama</span><span class="value">{{ $finalStep->actor?->name ?? $finalStep->approver?->name ?? '-' }}</span></td>
+    </tr>
+</table>
+<div class="section-title">Rincian Barang Dikirim</div>
+<table class="items">
+    <thead><tr><th style="width:6%">No.</th><th style="width:18%">Kode</th><th>Nama Barang</th><th style="width:15%">Batch</th><th style="width:14%">Qty</th><th style="width:12%">Satuan</th></tr></thead>
+    <tbody>
+    @foreach($delivery->details as $detail)
+        <tr><td class="center">{{ $loop->iteration }}</td><td><strong>{{ $detail->item?->code }}</strong></td><td>{{ $detail->item?->name }}</td><td>{{ $detail->batch_no ?: '-' }}</td><td class="right">{{ number_format((float) $detail->qty_delivered, 3, ',', '.') }}</td><td class="center">{{ $detail->uom?->code ?? $detail->item?->base_uom }}</td></tr>
+    @endforeach
+    </tbody>
+</table>
+<div class="section-title">Catatan</div><div class="notes">{{ $stockRequest->notes ?: 'Tidak ada catatan tambahan.' }}</div>
+<table class="signatures">
+    <tr><td>Diserahkan Oleh,</td><td>Diterima Oleh,</td><td>Disetujui Oleh,</td></tr>
+    <tr><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td></tr>
+    <tr><td><div class="sign-line">(........................)</div><div class="sign-role">Petugas Gudang</div></td><td><div class="sign-line">(........................)</div><div class="sign-role">Penerima Unit</div></td><td><div class="sign-line">{{ $finalStep->actor?->name ?? '(........................)' }}</div><div class="sign-role">Manajer Gudang Utama</div></td></tr>
+</table>
+<div class="footer">Dokumen dibuat oleh BAS StockFlow pada {{ now()->format('d/m/Y H:i') }}</div>
+</body>
+</html>

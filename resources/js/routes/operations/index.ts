@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 export const index = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 index.url = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -43,7 +43,7 @@ index.url = (args: { module: string | number } | [module: string | number ] | st
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 index.get = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -53,7 +53,7 @@ index.get = (args: { module: string | number } | [module: string | number ] | st
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 index.head = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -63,7 +63,7 @@ index.head = (args: { module: string | number } | [module: string | number ] | s
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 const indexForm = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -73,7 +73,7 @@ const indexForm = (args: { module: string | number } | [module: string | number 
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 indexForm.get = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -83,7 +83,7 @@ indexForm.get = (args: { module: string | number } | [module: string | number ] 
 
 /**
 * @see \App\Http\Controllers\OperationsController::index
-* @see app/Http/Controllers/OperationsController.php:29
+* @see app/Http/Controllers/OperationsController.php:149
 * @route '/operations/{module}'
 */
 indexForm.head = (args: { module: string | number } | [module: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

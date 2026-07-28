@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockTransaction extends Model
 {
-    protected $fillable = ['number', 'type', 'request_kind', 'stock_out_reason', 'source_warehouse_id', 'destination_warehouse_id', 'supplier_name', 'document_date', 'status', 'notes', 'created_by', 'assigned_approver_id', 'approved_by', 'approved_at', 'posted_at'];
+    protected $fillable = ['number', 'type', 'request_kind', 'stock_out_reason', 'source_warehouse_id', 'destination_warehouse_id', 'supplier_name', 'receipt_image_path', 'payment_proof_image_path', 'document_date', 'status', 'notes', 'created_by', 'assigned_approver_id', 'approved_by', 'approved_at', 'posted_at'];
 
     protected $casts = ['type' => TransactionType::class, 'status' => TransactionStatus::class, 'document_date' => 'date', 'approved_at' => 'datetime', 'posted_at' => 'datetime'];
 
