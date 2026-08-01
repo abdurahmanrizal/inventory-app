@@ -20,10 +20,13 @@ import {
   ChartNoAxesCombined,
   UsersRound,
   KeyRound,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConfirmActionDialog from "../components/confirm-action-dialog";
+import NotificationMenu from "../components/notification-menu";
 import clsx from "clsx";
 
 const links = [
@@ -136,8 +139,23 @@ export default function AppLayout({ children, title, fullWidth = false }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [accessOpen, setAccessOpen] = useState(null);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   const { url, props } = usePage();
   const user = props.auth?.user;
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   const role = user?.role || "superadmin";
   const permissions = props.auth?.permissions || [];
   const hasPermission = (permission) =>
@@ -337,11 +355,23 @@ export default function AppLayout({ children, title, fullWidth = false }) {
               {title}
             </h1>
           </div>
-          <div className="ml-auto hidden items-center gap-2 text-sm text-slate-500 sm:flex">
-            <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-            Sistem operasional
+          <div className="ml-auto flex items-center gap-3">
+            <span
+              className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium sm:inline-flex ${online ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}
+              role="status"
+            >
+              {online ? <Wifi size={14} /> : <WifiOff size={14} />}
+              {online ? "Online" : "Offline"}
+            </span>
+            <NotificationMenu notifications={props.auth?.notifications} />
           </div>
         </header>
+        {!online && (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-800 sm:text-sm">
+            Koneksi terputus. Data hanya dapat dilihat kembali setelah internet
+            tersedia dan transaksi sementara tidak dapat diproses.
+          </div>
+        )}
         <div
           className={`w-full p-4 sm:p-6 lg:p-8 ${fullWidth ? "" : "max-w-[1440px]"}`}
         >

@@ -53,6 +53,31 @@ class FullWmsWorkflowTest extends TestCase
         $this->actingAs($user)->get('/operations/fulfillment')->assertOk();
     }
 
+    public function test_fulfillment_items_follow_available_stock_and_uom_in_selected_main_warehouse(): void
+    {
+        $dry = Warehouse::create(['code' => 'WH-REQ-DRY', 'name' => 'Gudang Kering Request', 'type' => 'main']);
+        $wet = Warehouse::create(['code' => 'WH-REQ-WET', 'name' => 'Gudang Basah Request', 'type' => 'main']);
+        $unit = Warehouse::create(['code' => 'UNIT-REQ', 'name' => 'Unit Request', 'type' => 'unit', 'main_warehouse_id' => $dry->id]);
+        $pcs = Uom::create(['code' => 'PCS-REQ', 'name' => 'Pieces', 'type' => 'base']);
+        $dryItem = Item::create(['code' => 'DRY-AVAILABLE', 'name' => 'Item Kering Tersedia', 'base_uom' => $pcs->code]);
+        $wetItem = Item::create(['code' => 'WET-AVAILABLE', 'name' => 'Item Basah Tersedia', 'base_uom' => $pcs->code]);
+        $emptyItem = Item::create(['code' => 'DRY-EMPTY', 'name' => 'Item Kosong', 'base_uom' => $pcs->code]);
+        foreach ([$dryItem, $wetItem, $emptyItem] as $item) {
+            ItemUom::create(['item_id' => $item->id, 'uom_id' => $pcs->id, 'conversion_factor' => 1, 'is_base' => true]);
+        }
+        CurrentStock::create(['warehouse_id' => $dry->id, 'item_id' => $dryItem->id, 'uom_id' => $pcs->id, 'qty_on_hand' => 12, 'qty_reserved' => 2]);
+        CurrentStock::create(['warehouse_id' => $wet->id, 'item_id' => $wetItem->id, 'uom_id' => $pcs->id, 'qty_on_hand' => 8]);
+        CurrentStock::create(['warehouse_id' => $dry->id, 'item_id' => $emptyItem->id, 'uom_id' => $pcs->id, 'qty_on_hand' => 3, 'qty_reserved' => 3]);
+        $user = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
+
+        $this->actingAs($user)->get('/operations/fulfillment')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('requestStockItems', 2)
+            ->where('requestStockItems.0.warehouse_id', $dry->id)
+            ->where('requestStockItems.0.item_id', $dryItem->id)
+            ->where('requestStockItems.0.uom_code', $pcs->code)
+            ->where('requestStockItems.0.qty_available', 10));
+    }
+
     public function test_master_data_page_loads_seeded_warehouse_locations(): void
     {
         $warehouse = Warehouse::create(['code' => 'WH-M', 'name' => 'Master Warehouse', 'type' => 'main']);
@@ -280,6 +305,7 @@ class FullWmsWorkflowTest extends TestCase
         $unitManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $unit->id]);
         $warehouseAdmin = User::factory()->create(['role' => UserRole::WarehouseAdminWet, 'warehouse_id' => $main->id]);
         $warehouseManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $main->id]);
+        CurrentStock::create(['warehouse_id' => $main->id, 'item_id' => $item->id, 'qty_on_hand' => 10]);
 
         $this->actingAs($superadmin)->post('/operations/fulfillment/requests', [
             'from_warehouse_id' => $main->id, 'to_warehouse_id' => $unit->id,

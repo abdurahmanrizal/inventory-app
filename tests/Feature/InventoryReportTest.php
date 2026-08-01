@@ -48,6 +48,27 @@ class InventoryReportTest extends TestCase
             ->where('data.rows.0.warehouse.id', $own->id));
     }
 
+    public function test_report_item_options_only_include_stock_from_accessible_warehouses(): void
+    {
+        $firstWarehouse = Warehouse::create(['code' => 'REP-FILTER-1', 'name' => 'Gudang Filter Satu', 'type' => 'main']);
+        $secondWarehouse = Warehouse::create(['code' => 'REP-FILTER-2', 'name' => 'Gudang Filter Dua', 'type' => 'main']);
+        $firstItem = Item::create(['code' => 'REP-FIRST', 'name' => 'Item Pertama', 'base_uom' => 'PCS']);
+        $secondItem = Item::create(['code' => 'REP-SECOND', 'name' => 'Item Kedua', 'base_uom' => 'KG']);
+        $emptyItem = Item::create(['code' => 'REP-EMPTY', 'name' => 'Item Tanpa Stok', 'base_uom' => 'PCS']);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin]);
+
+        CurrentStock::create(['warehouse_id' => $firstWarehouse->id, 'item_id' => $firstItem->id, 'qty_on_hand' => 5, 'qty_reserved' => 0, 'average_cost' => 1000]);
+        CurrentStock::create(['warehouse_id' => $secondWarehouse->id, 'item_id' => $secondItem->id, 'qty_on_hand' => 7, 'qty_reserved' => 0, 'average_cost' => 2000]);
+        CurrentStock::create(['warehouse_id' => $firstWarehouse->id, 'item_id' => $emptyItem->id, 'qty_on_hand' => 0, 'qty_reserved' => 0, 'average_cost' => 0]);
+
+        $this->actingAs($admin)->get('/reports?warehouse_id='.$firstWarehouse->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('items', 2)
+                ->where('items', fn ($items) => collect($items)->contains(fn ($item) => $item['id'] === $firstItem->id && $item['warehouse_ids'] === [$firstWarehouse->id])
+                    && collect($items)->contains(fn ($item) => $item['id'] === $secondItem->id && $item['warehouse_ids'] === [$secondWarehouse->id])));
+    }
+
     public function test_user_without_report_permission_cannot_open_reports(): void
     {
         $user = User::factory()->create(['role' => UserRole::UnitUser]);

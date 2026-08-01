@@ -4,17 +4,20 @@ import { Head, useForm } from "@inertiajs/react";
 import {
   AlertCircle,
   CalendarDays,
+  Camera,
   ChevronDown,
   CheckCircle2,
   Image,
   PackagePlus,
   Plus,
-  Search,
   Trash2,
+  Upload,
   Warehouse,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import CameraCaptureDialog from "../../components/camera-capture-dialog";
 import ConfirmActionDialog from "../../components/confirm-action-dialog";
+import SearchableItemSelect from "../../components/searchable-item-select";
 import TransactionHistory from "../../components/TransactionHistory";
 import AppLayout from "../../layouts/AppLayout";
 
@@ -29,92 +32,130 @@ const emptyDetail = () => ({
   expired_at: "",
 });
 
-function SearchableProductSelect({ value, items, onChange }) {
-  const selected = items.find((item) => String(item.id) === String(value));
-  const [query, setQuery] = useState(
-    selected ? `${selected.code} — ${selected.name}` : "",
-  );
-  const [open, setOpen] = useState(false);
+function SupportingDocumentInput({ label, description, value, onChange }) {
+  const fileInput = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const inputClass = "sr-only";
 
   useEffect(() => {
-    setQuery(selected ? `${selected.code} — ${selected.name}` : "");
-  }, [value, selected?.code, selected?.name]);
+    if (!value) {
+      setPreviewUrl("");
+      return undefined;
+    }
 
-  const filteredItems = items
-    .filter((item) =>
-      `${item.code} ${item.name}`
-        .toLowerCase()
-        .includes(query.trim().toLowerCase()),
-    )
-    .slice(0, 50);
+    const objectUrl = URL.createObjectURL(value);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [value]);
+
+  const selectFile = (event) => {
+    onChange(event.target.files?.[0] || null);
+    event.target.value = "";
+  };
 
   return (
-    <div
-      className="relative"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setOpen(false);
-          setQuery(selected ? `${selected.code} — ${selected.name}` : "");
-        }
-      }}
-    >
-      <Search
-        size={16}
-        className="pointer-events-none absolute left-3.5 top-3.5 z-10 text-slate-400"
-      />
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-5">
+      <span className="flex items-start gap-3">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={`Pratinjau ${label}`}
+            className="size-16 shrink-0 rounded-xl bg-white object-cover shadow-sm ring-1 ring-slate-200"
+          />
+        ) : (
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm">
+            <Image size={18} />
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-slate-800">
+            {label}
+          </span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">
+            {description}
+          </span>
+        </span>
+      </span>
+
       <input
-        value={query}
-        autoComplete="off"
-        placeholder="Cari kode atau nama produk"
-        className={`${fieldClass} pl-10 pr-9`}
-        onFocus={(event) => {
-          setOpen(true);
-          event.currentTarget.select();
-        }}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setOpen(true);
-          if (!event.target.value) {
-            onChange("");
+        ref={fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className={inputClass}
+        onChange={selectFile}
+      />
+      <div
+        className="relative mt-4"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setMenuOpen(false);
           }
         }}
+      >
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+        >
+          <Upload size={15} />
+          {value ? "Ganti dokumen" : "Tambah dokumen"}
+          <ChevronDown
+            size={15}
+            className={`ml-auto transition ${menuOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute left-0 right-0 z-20 mt-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setCameraOpen(true);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <Camera size={16} /> Ambil dari kamera
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                fileInput.current?.click();
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <Upload size={16} /> Pilih dari perangkat
+            </button>
+          </div>
+        )}
+      </div>
+
+      <span
+        className={`mt-3 block truncate text-xs ${value ? "font-medium text-emerald-700" : "text-slate-400"}`}
+      >
+        {value ? value.name : "Belum ada file dipilih"}
+      </span>
+      <span className="mt-1 block text-[11px] text-slate-400">
+        JPG, PNG, atau WebP · maksimal 10 MB · dikompres otomatis
+      </span>
+
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        label={label}
+        onCapture={onChange}
       />
-      <ChevronDown
-        size={16}
-        className={`pointer-events-none absolute right-3.5 top-3.5 text-slate-400 transition ${open ? "rotate-180" : ""}`}
-      />
-      {open && (
-        <div className="absolute z-30 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-          {filteredItems.length ? (
-            filteredItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onChange(String(item.id));
-                  setQuery(`${item.code} — ${item.name}`);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-emerald-50 ${
-                  String(item.id) === String(value)
-                    ? "bg-emerald-50 font-semibold text-emerald-700"
-                    : "text-slate-700"
-                }`}
-              >
-                <span>{item.code} — {item.name}</span>
-                {String(item.id) === String(value) && (
-                  <CheckCircle2 size={15} />
-                )}
-              </button>
-            ))
-          ) : (
-            <p className="px-3 py-6 text-center text-xs text-slate-500">
-              Produk tidak ditemukan.
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -136,6 +177,7 @@ export default function Index({
     supplier_name: "",
     receipt_image: null,
     payment_proof_image: null,
+    delivery_proof_image: null,
     document_date: new Date().toISOString().slice(0, 10),
     notes: "",
     details: [emptyDetail()],
@@ -378,12 +420,11 @@ export default function Index({
                     <span className="text-xs font-semibold text-slate-600">
                       Produk
                     </span>
-                    <SearchableProductSelect
+                    <SearchableItemSelect
                       value={detail.item_id}
                       items={items}
-                      onChange={(itemId) =>
-                        setDetail(index, "item_id", itemId)
-                      }
+                      placeholder="Cari kode atau nama produk"
+                      onChange={(itemId) => setDetail(index, "item_id", itemId)}
                     />
                   </label>
                   {!isUnitRequest && (
@@ -464,34 +505,31 @@ export default function Index({
                 </p>
               </div>
             </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+            <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
               {[
-                ["receipt_image", "Foto nota", "Foto nota pembelian dari supplier"],
-                ["payment_proof_image", "Bukti pembayaran", "Foto transfer atau bukti pembayaran"],
+                [
+                  "receipt_image",
+                  "Foto nota",
+                  "Foto nota pembelian dari supplier",
+                ],
+                [
+                  "payment_proof_image",
+                  "Bukti pembayaran",
+                  "Foto transfer atau bukti pembayaran",
+                ],
+                [
+                  "delivery_proof_image",
+                  "Bukti pengiriman",
+                  "Foto surat jalan atau bukti barang dikirim",
+                ],
               ].map(([key, label, description]) => (
-                <label
+                <SupportingDocumentInput
                   key={key}
-                  className="group cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-5 transition hover:border-emerald-300 hover:bg-emerald-50/40"
-                >
-                  <span className="flex items-start gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm group-hover:text-emerald-700">
-                      <Image size={18} />
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold text-slate-800">{label}</span>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500">{description}</span>
-                    </span>
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="mt-4 block w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700 file:shadow-sm"
-                    onChange={(event) => form.setData(key, event.target.files?.[0] || null)}
-                  />
-                  <span className="mt-2 block text-[11px] text-slate-400">
-                    JPG, PNG, atau WebP · maksimal 10 MB
-                  </span>
-                </label>
+                  label={label}
+                  description={description}
+                  value={form.data[key]}
+                  onChange={(file) => form.setData(key, file)}
+                />
               ))}
             </div>
           </section>

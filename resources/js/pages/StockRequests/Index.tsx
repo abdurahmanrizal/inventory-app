@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { Head, Link, router } from "@inertiajs/react";
-import { ChevronDown, ClipboardList, Search } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ClipboardList, Package, Search } from "lucide-react";
+import { Fragment, useState } from "react";
 import AppLayout from "../../layouts/AppLayout";
 
 const badge = (status = "") =>
@@ -48,6 +48,15 @@ export default function Index({
     date_from: filters.date_from || "",
     date_to: filters.date_to || "",
   });
+  const [expandedRequestId, setExpandedRequestId] = useState<number | null>(
+    null,
+  );
+
+  const toggleDetails = (requestId: number) => {
+    setExpandedRequestId((activeId) =>
+      activeId === requestId ? null : requestId,
+    );
+  };
 
   const submit = (event: any) => {
     event.preventDefault();
@@ -144,7 +153,7 @@ export default function Index({
       </form>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="max-h-[620px] overflow-auto">
+        <div className="hidden max-h-[620px] overflow-auto md:block">
           <table className="min-w-full text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500 shadow-[0_1px_0_0_rgb(226,232,240)]">
               <tr>
@@ -164,72 +173,156 @@ export default function Index({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {requests.data.map((row: any) => (
-                <tr key={row.id} className="hover:bg-slate-50/70">
-                  <td className="whitespace-nowrap px-4 py-4">
-                    <p className="font-semibold text-slate-900">{row.number}</p>
+              {requests.data.map((row: any) => {
+                const expanded = expandedRequestId === row.id;
+
+                return (
+                  <Fragment key={row.id}>
+                    <tr
+                      className={`transition ${expanded ? "bg-emerald-50/30" : "hover:bg-slate-50/70"}`}
+                    >
+                      <td className="whitespace-nowrap px-4 py-4">
+                        <p className="font-semibold text-slate-900">
+                          {row.number}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {new Date(row.request_date).toLocaleDateString(
+                            "id-ID",
+                          )}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-flex whitespace-nowrap rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                          {row.to_warehouse?.name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {row.from_warehouse?.name}
+                      </td>
+                      <td className="px-4 py-4 font-medium">
+                        {row.details_count}
+                      </td>
+                      <td className="px-4 py-4 font-medium">
+                        {Number(row.total_qty_requested || 0).toLocaleString(
+                          "id-ID",
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge(row.status)}`}
+                        >
+                          {requestStatus(row)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          onClick={() => toggleDetails(row.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                        >
+                          {expanded ? "Tutup" : "Lihat"}
+                          <ChevronDown
+                            size={14}
+                            className={`transition ${expanded ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr>
+                        <td colSpan={7} className="bg-slate-50/70 px-4 py-4">
+                          <RequestItemList details={row.details} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="divide-y divide-slate-100 md:hidden">
+          {requests.data.map((row: any) => {
+            const expanded = expandedRequestId === row.id;
+
+            return (
+              <article key={row.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
+                      {row.number}
+                    </p>
                     <p className="mt-1 text-xs text-slate-400">
                       {new Date(row.request_date).toLocaleDateString("id-ID")}
                     </p>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="inline-flex whitespace-nowrap rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                      {row.to_warehouse?.name}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {row.from_warehouse?.name}
-                  </td>
-                  <td className="px-4 py-4 font-medium">{row.details_count}</td>
-                  <td className="px-4 py-4 font-medium">
-                    {Number(row.total_qty_requested || 0).toLocaleString(
-                      "id-ID",
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge(row.status)}`}
-                    >
-                      {requestStatus(row)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <details className="group">
-                      <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-emerald-700 [&::-webkit-details-marker]:hidden">
-                        Lihat{" "}
-                        <ChevronDown
-                          size={14}
-                          className="transition group-open:rotate-180"
-                        />
-                      </summary>
-                      <div className="fixed inset-x-4 z-20 mt-2 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-6 sm:w-[520px]">
-                        {row.details.map((detail: any) => (
-                          <div
-                            key={detail.id}
-                            className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-100 px-2 py-2.5 last:border-0"
-                          >
-                            <div>
-                              <p className="text-xs font-semibold text-slate-800">
-                                {detail.item?.code} · {detail.item?.name}
-                              </p>
-                              <p className="mt-0.5 text-[11px] text-slate-400">
-                                {detail.uom?.code || detail.item?.base_uom}
-                              </p>
-                            </div>
-                            <p className="text-xs font-semibold text-slate-700">
-                              {Number(detail.qty_requested).toLocaleString(
-                                "id-ID",
-                              )}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${badge(row.status)}`}
+                  >
+                    {requestStatus(row)}
+                  </span>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-xs">
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Unit peminta
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-700">
+                      {row.to_warehouse?.name || "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Gudang sumber
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-700">
+                      {row.from_warehouse?.name || "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Jumlah item
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-700">
+                      {row.details_count}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Total qty
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-700">
+                      {Number(row.total_qty_requested || 0).toLocaleString(
+                        "id-ID",
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => toggleDetails(row.id)}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700"
+                >
+                  {expanded ? "Tutup detail item" : "Lihat detail item"}
+                  <ChevronDown
+                    size={15}
+                    className={`transition ${expanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {expanded && (
+                  <div className="mt-3">
+                    <RequestItemList details={row.details} />
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
         {!requests.data.length && (
           <div className="py-14 text-center text-sm text-slate-500">
@@ -276,5 +369,46 @@ function FilterSelect({ value, onChange, children }: any) {
     >
       {children}
     </select>
+  );
+}
+
+function RequestItemList({ details }: any) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="flex items-center gap-2 border-b border-slate-100 bg-white px-4 py-3">
+        <span className="grid size-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
+          <Package size={15} />
+        </span>
+        <div>
+          <p className="text-xs font-semibold text-slate-800">
+            Daftar item request
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-400">
+            {details.length} item dalam pengajuan ini
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-3">
+        {details.map((detail: any) => (
+          <div
+            key={detail.id}
+            className="flex items-center justify-between gap-4 bg-white px-4 py-3.5"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-slate-800">
+                {detail.item?.name}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                {detail.item?.code} ·{" "}
+                {detail.uom?.code || detail.item?.base_uom}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700">
+              {Number(detail.qty_requested).toLocaleString("id-ID")}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

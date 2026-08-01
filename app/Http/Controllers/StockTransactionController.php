@@ -81,6 +81,7 @@ class StockTransactionController extends Controller
             'supplier_name' => ['nullable', 'string', 'max:150'],
             'receipt_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=8000,max_height=8000'],
             'payment_proof_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=8000,max_height=8000'],
+            'delivery_proof_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=8000,max_height=8000'],
             'document_date' => ['required', 'date'], 'notes' => ['nullable', 'string'],
             'details' => ['required', 'array', 'min:1'], 'details.*.item_id' => ['required', 'exists:items,id'],
             'details.*.qty' => ['required', 'numeric', 'gt:0'], 'details.*.unit_cost' => ['nullable', 'numeric', 'gte:0'],
@@ -147,14 +148,14 @@ class StockTransactionController extends Controller
         }
         $storedImages = [];
         if ($type === TransactionType::StockIn) {
-            foreach (['receipt_image' => 'receipt_image_path', 'payment_proof_image' => 'payment_proof_image_path'] as $input => $column) {
+            foreach (['receipt_image' => 'receipt_image_path', 'payment_proof_image' => 'payment_proof_image_path', 'delivery_proof_image' => 'delivery_proof_image_path'] as $input => $column) {
                 if ($request->hasFile($input)) {
                     $data[$column] = $this->storeCompressedImage($request->file($input), $input);
                     $storedImages[] = $data[$column];
                 }
             }
         }
-        unset($data['receipt_image'], $data['payment_proof_image']);
+        unset($data['receipt_image'], $data['payment_proof_image'], $data['delivery_proof_image']);
 
         try {
             $tx = DB::transaction(function () use ($data, $type, $request, $assignedApproverId, $approverIds) {
@@ -227,7 +228,7 @@ class StockTransactionController extends Controller
 
     public function evidence(Request $request, StockTransaction $transaction, string $kind)
     {
-        abort_unless(in_array($kind, ['receipt', 'payment'], true), 404);
+        abort_unless(in_array($kind, ['receipt', 'payment', 'delivery'], true), 404);
         $user = $request->user();
         $warehouseId = $transaction->type === TransactionType::StockIn
             ? $transaction->destination_warehouse_id
@@ -239,7 +240,11 @@ class StockTransactionController extends Controller
             || $transaction->assigned_approver_id === $user->id,
             403,
         );
-        $path = $kind === 'receipt' ? $transaction->receipt_image_path : $transaction->payment_proof_image_path;
+        $path = match ($kind) {
+            'receipt' => $transaction->receipt_image_path,
+            'payment' => $transaction->payment_proof_image_path,
+            'delivery' => $transaction->delivery_proof_image_path,
+        };
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
         return Storage::disk('local')->response($path);

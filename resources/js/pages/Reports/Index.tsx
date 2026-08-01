@@ -18,7 +18,8 @@ import {
   Warehouse,
 } from "lucide-react";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import SearchableItemSelect from "../../components/searchable-item-select";
 import AppLayout from "../../layouts/AppLayout";
 
 const number = (value: number) =>
@@ -114,8 +115,24 @@ export default function Index({
   accessLabel,
 }: any) {
   const [form, setForm] = useState({ ...filters, report });
+  const filteredItems = useMemo(() => {
+    if (!form.warehouse_id) return items;
+
+    return items.filter((item: any) =>
+      item.warehouse_ids?.some(
+        (warehouseId: number | string) =>
+          String(warehouseId) === String(form.warehouse_id),
+      ),
+    );
+  }, [form.warehouse_id, items]);
   const update = (key: string, value: string) =>
     setForm((current: any) => ({ ...current, [key]: value }));
+  const updateWarehouse = (warehouseId: string) =>
+    setForm((current: any) => ({
+      ...current,
+      warehouse_id: warehouseId,
+      item_id: "",
+    }));
   const submit = (event: FormEvent) => {
     event.preventDefault();
     router.get("/reports", form, { preserveState: true, replace: true });
@@ -210,7 +227,7 @@ export default function Index({
                 Gudang
                 <select
                   value={form.warehouse_id || ""}
-                  onChange={(e) => update("warehouse_id", e.target.value)}
+                  onChange={(e) => updateWarehouse(e.target.value)}
                   className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-emerald-400"
                 >
                   <option value="">Semua gudang</option>
@@ -226,18 +243,19 @@ export default function Index({
               <>
                 <label className="text-xs font-semibold text-slate-600">
                   Item
-                  <select
-                    value={form.item_id || ""}
-                    onChange={(e) => update("item_id", e.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-emerald-400"
-                  >
-                    <option value="">Semua item</option>
-                    {items.map((row: any) => (
-                      <option key={row.id} value={row.id}>
-                        {row.code} - {row.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-2">
+                    <SearchableItemSelect
+                      value={form.item_id || ""}
+                      items={filteredItems}
+                      onChange={(value) => update("item_id", value)}
+                      placeholder={
+                        form.warehouse_id
+                          ? "Cari item di gudang ini"
+                          : "Cari item dalam cakupan gudang"
+                      }
+                      emptyOptionLabel="Semua item"
+                    />
+                  </div>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
                   Batch
@@ -293,10 +311,16 @@ export default function Index({
               <button className="h-11 whitespace-nowrap rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700">
                 Terapkan filter
               </button>
-              <a href={exportUrl("pdf")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              <a
+                href={exportUrl("pdf")}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
                 <Download size={16} /> PDF
               </a>
-              <a href={exportUrl("xlsx")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              <a
+                href={exportUrl("xlsx")}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
                 <Download size={16} /> Excel
               </a>
             </div>
@@ -671,8 +695,8 @@ function CostHistory({ data }: any) {
           "Referensi",
           "Qty masuk",
           "Harga masuk",
-          "HPP sebelum",
-          "HPP setelah",
+          "Harga sebelum",
+          "Harga setelah",
           "Perubahan",
           "Petugas",
         ]}
@@ -715,7 +739,7 @@ function CostHistory({ data }: any) {
                 </span>
                 <small>
                   {row.percentage === null
-                    ? "HPP awal"
+                    ? "Harga awal"
                     : `${row.percentage > 0 ? "+" : ""}${number(row.percentage)}%`}
                 </small>
               </Cell>

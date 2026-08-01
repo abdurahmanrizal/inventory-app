@@ -305,8 +305,27 @@ class InventoryReportService
         ];
     }
 
-    public function items(): Collection
+    public function items(Collection $warehouseIds): Collection
     {
-        return Item::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
+        $stocksByItem = CurrentStock::query()
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->where('qty_on_hand', '>', 0)
+            ->get(['item_id', 'warehouse_id'])
+            ->groupBy('item_id');
+
+        return Item::query()
+            ->where('is_active', true)
+            ->whereIn('id', $stocksByItem->keys())
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->map(fn (Item $item) => [
+                'id' => $item->id,
+                'code' => $item->code,
+                'name' => $item->name,
+                'warehouse_ids' => $stocksByItem->get($item->id, collect())
+                    ->pluck('warehouse_id')
+                    ->unique()
+                    ->values(),
+            ]);
     }
 }

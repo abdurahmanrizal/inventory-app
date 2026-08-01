@@ -66,16 +66,25 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                               <span className="rounded-full px-2 py-0.5 font-medium ring-1 ring-inset ring-slate-200">
                                 {approval.status}
                               </span>
-                              {approval.remarks && <span>{approval.remarks}</span>}
+                              {approval.remarks && (
+                                <span>{approval.remarks}</span>
+                              )}
                             </div>
                           ))}
                         </div>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
-                      <span>{transaction.source_warehouse?.name || "Eksternal"}</span>
-                      <ArrowRight size={13} className="mx-2 inline text-slate-300" />
-                      <span>{transaction.destination_warehouse?.name || "Eksternal"}</span>
+                      <span>
+                        {transaction.source_warehouse?.name || "Eksternal"}
+                      </span>
+                      <ArrowRight
+                        size={13}
+                        className="mx-2 inline text-slate-300"
+                      />
+                      <span>
+                        {transaction.destination_warehouse?.name || "Eksternal"}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                       {formatDateTime(transaction.document_date)}
@@ -107,6 +116,16 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-700"
                           >
                             <FileText size={14} /> Bayar
+                          </a>
+                        )}
+                        {transaction.delivery_proof_image_path && (
+                          <a
+                            href={`/stock-transactions/${transaction.id}/evidence/delivery`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:text-violet-700"
+                          >
+                            <FileText size={14} /> Kirim
                           </a>
                         )}
                         <a

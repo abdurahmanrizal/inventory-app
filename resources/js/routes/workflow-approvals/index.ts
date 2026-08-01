@@ -1,10 +1,10 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:612
+* @see app/Http/Controllers/OperationsController.php:656
 * @route '/workflow-approvals/{approval}'
 */
-export const act = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const act = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: act.url(args, options),
     method: 'post',
 })
@@ -16,10 +16,10 @@ act.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:612
+* @see app/Http/Controllers/OperationsController.php:656
 * @route '/workflow-approvals/{approval}'
 */
-act.url = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+act.url = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { approval: args }
     }
@@ -49,30 +49,30 @@ act.url = (args: { approval: string | number | { id: string | number } } | [appr
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:612
+* @see app/Http/Controllers/OperationsController.php:656
 * @route '/workflow-approvals/{approval}'
 */
-act.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+act.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: act.url(args, options),
     method: 'post',
 })
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:612
+* @see app/Http/Controllers/OperationsController.php:656
 * @route '/workflow-approvals/{approval}'
 */
-const actForm = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const actForm = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: act.url(args, options),
     method: 'post',
 })
 
 /**
 * @see \App\Http\Controllers\OperationsController::act
-* @see app/Http/Controllers/OperationsController.php:612
+* @see app/Http/Controllers/OperationsController.php:656
 * @route '/workflow-approvals/{approval}'
 */
-actForm.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+actForm.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: act.url(args, options),
     method: 'post',
 })

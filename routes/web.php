@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessManagementController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryReportController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\StockTransactionController;
 use App\Http\Controllers\TransactionActivityController;
@@ -17,6 +18,9 @@ Route::get('/', fn () => redirect()->route(
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::get('warehouse-stocks', WarehouseStockController::class)->middleware('permission:stock.view')->name('warehouse-stocks.index');
     Route::get('transaction-activities', TransactionActivityController::class)->middleware('permission:activity.view')->name('transaction-activities.index');
     Route::get('reports', InventoryReportController::class)->middleware('permission:report.view')->name('reports.index');

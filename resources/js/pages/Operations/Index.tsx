@@ -202,6 +202,7 @@ export default function Operations({
   pendingApprovals,
   approvalHistory,
   fulfillmentAccess,
+  requestStockItems,
   initialMaster,
 }: any) {
   const [kind, setKind] = useState(
@@ -286,6 +287,10 @@ export default function Operations({
         Number(stock.item_id) === Number(item.id) &&
         Number(stock.qty_on_hand) > 0,
     ),
+  );
+  const availableRequestItems = (requestStockItems || []).filter(
+    (stock: any) =>
+      Number(stock.warehouse_id) === Number(form.data.from_warehouse_id),
   );
   const selectedManager = managers.find(
     (manager: any) =>
@@ -1052,7 +1057,15 @@ export default function Operations({
                       value={form.data.from_warehouse_id}
                       placeholder="Pilih gudang kering atau basah"
                       onChange={(e: any) =>
-                        form.setData("from_warehouse_id", e.target.value)
+                        form.setData({
+                          ...form.data,
+                          from_warehouse_id: e.target.value,
+                          details: form.data.details.map((detail: any) => ({
+                            ...detail,
+                            item_id: "",
+                            uom_id: "",
+                          })),
+                        })
                       }
                     >
                       {warehouses
@@ -1293,7 +1306,9 @@ export default function Operations({
                         Barang yang dibutuhkan
                       </p>
                       <p className="mt-0.5 text-xs text-slate-500">
-                        Anda dapat meminta beberapa barang sekaligus.
+                        {!form.data.from_warehouse_id
+                          ? "Pilih gudang sumber terlebih dahulu untuk melihat barang tersedia."
+                          : `${availableRequestItems.length} barang tersedia pada gudang yang dipilih.`}
                       </p>
                     </div>
                     <button
@@ -1318,45 +1333,65 @@ export default function Operations({
                         <Field label={`Nama barang ${index + 1} *`}>
                           <SearchableSelect
                             value={detail.item_id}
-                            placeholder="Pilih barang yang dibutuhkan"
-                            options={items.map((item: any) => ({
-                              value: item.id,
-                              label: `${item.code} — ${item.name}`,
-                            }))}
-                            onChange={(itemId: string) =>
+                            placeholder={
+                              form.data.from_warehouse_id
+                                ? "Cari barang tersedia"
+                                : "Pilih gudang sumber terlebih dahulu"
+                            }
+                            options={availableRequestItems.map(
+                              (stock: any) => ({
+                                value: stock.item.id,
+                                label: `${stock.item.code} — ${stock.item.name} · tersedia ${Number(stock.qty_available).toLocaleString("id-ID")} ${stock.uom_code}`,
+                              }),
+                            )}
+                            onChange={(itemId: string) => {
+                              const selectedStock = availableRequestItems.find(
+                                (stock: any) =>
+                                  Number(stock.item_id) === Number(itemId),
+                              );
                               form.setData(
                                 "details",
                                 form.data.details.map((row: any, i: number) =>
                                   i === index
-                                    ? { ...row, item_id: itemId }
+                                    ? {
+                                        ...row,
+                                        item_id: itemId,
+                                        uom_id: selectedStock?.uom_id || "",
+                                      }
                                     : row,
                                 ),
-                              )
-                            }
+                              );
+                            }}
                           />
                         </Field>
                       </div>
-                      <Field label="Satuan">
-                        <Select
-                          value={detail.uom_id}
-                          placeholder="Pilih satuan"
-                          onChange={(e: any) =>
-                            form.setData(
-                              "details",
-                              form.data.details.map((row: any, i: number) =>
-                                i === index
-                                  ? { ...row, uom_id: e.target.value }
-                                  : row,
-                              ),
-                            )
-                          }
-                        >
-                          {uoms.map((x: any) => (
-                            <option key={x.id} value={x.id}>
-                              {x.name}
-                            </option>
-                          ))}
-                        </Select>
+                      <Field label="Satuan tersedia">
+                        {(() => {
+                          const selectedStock = availableRequestItems.find(
+                            (stock: any) =>
+                              Number(stock.item_id) === Number(detail.item_id),
+                          );
+
+                          return (
+                            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 text-sm">
+                              <span
+                                className={
+                                  selectedStock
+                                    ? "font-semibold text-slate-700"
+                                    : "text-slate-400"
+                                }
+                              >
+                                {selectedStock?.uom_name ||
+                                  "Pilih barang dahulu"}
+                              </span>
+                              {selectedStock && (
+                                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                  {selectedStock.uom_code}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </Field>
                       <Field label="Jumlah *">
                         <input
@@ -1742,12 +1777,14 @@ function RequestStockList({ records }: any) {
       (!statusFilter || row.status === statusFilter),
   );
   const stageName = (step: any) =>
-    ({
-      requester: "Unit Peminta",
-      unit_manager: "Manajer Unit",
-      warehouse_admin: "Admin Gudang",
-      warehouse_manager: "Manajer Gudang",
-    } as Record<string, string>)[step?.stage_key] ||
+    (
+      ({
+        requester: "Unit Peminta",
+        unit_manager: "Manajer Unit",
+        warehouse_admin: "Admin Gudang",
+        warehouse_manager: "Manajer Gudang",
+      }) as Record<string, string>
+    )[step?.stage_key] ||
     step?.stage_label?.replace(/^Approval\s+/i, "") ||
     "Approval";
   const requestStatus = (row: any) => {

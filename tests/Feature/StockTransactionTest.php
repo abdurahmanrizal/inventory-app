@@ -154,17 +154,23 @@ class StockTransactionTest extends TestCase
             'document_date' => now()->toDateString(),
             'receipt_image' => UploadedFile::fake()->image('nota.png', 2400, 1800),
             'payment_proof_image' => UploadedFile::fake()->image('bayar.png', 2000, 2000),
+            'delivery_proof_image' => UploadedFile::fake()->image('pengiriman.png', 2200, 1800),
             'details' => [['item_id' => $item->id, 'qty' => 5, 'unit_cost' => 12000]],
         ])->assertRedirect();
 
         $transaction = StockTransaction::where('supplier_name', 'PT Dengan Bukti')->firstOrFail();
         Storage::disk('local')->assertExists($transaction->receipt_image_path);
         Storage::disk('local')->assertExists($transaction->payment_proof_image_path);
+        Storage::disk('local')->assertExists($transaction->delivery_proof_image_path);
         [$width, $height] = getimagesize(Storage::disk('local')->path($transaction->receipt_image_path));
         $this->assertLessThanOrEqual(1600, max($width, $height));
         $this->assertStringEndsWith('.jpg', $transaction->receipt_image_path);
         $this->actingAs($admin)
             ->get(route('stock-transactions.evidence', [$transaction, 'receipt']))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/jpeg');
+        $this->actingAs($admin)
+            ->get(route('stock-transactions.evidence', [$transaction, 'delivery']))
             ->assertOk()
             ->assertHeader('content-type', 'image/jpeg');
     }

@@ -23,7 +23,7 @@ class InventoryReportController extends Controller
             'data' => $data,
             'filters' => $filters,
             'warehouses' => $context['warehouses'],
-            'items' => $reports->items(),
+            'items' => $reports->items($context['warehouseIds']),
             'canFilterWarehouse' => $context['canFilterWarehouse'],
             'accessLabel' => $context['accessLabel'],
         ]);

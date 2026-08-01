@@ -30,4 +30,9 @@ class CurrentStock extends Model
     {
         return $this->belongsTo(Location::class);
     }
+
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class);
+    }
 }

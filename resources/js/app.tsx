@@ -1,12 +1,28 @@
-import { createInertiaApp } from "@inertiajs/react";
+import { createInertiaApp, router } from "@inertiajs/react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { initializeTheme } from "@/hooks/use-appearance";
 import AppLayout from "@/layouts/app-layout";
 import AuthLayout from "@/layouts/auth-layout";
 import SettingsLayout from "@/layouts/settings/layout";
+import { registerSW } from "virtual:pwa-register";
+import { toast } from "sonner";
 
 const appName = import.meta.env.VITE_APP_NAME || "BAS StockFlow";
+
+registerSW({ immediate: true });
+
+router.on("before", (event) => {
+  if (
+    navigator.onLine ||
+    String(event.detail.visit.method).toLowerCase() === "get"
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  toast.error("Transaksi tidak dapat diproses saat perangkat offline.");
+});
 
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),

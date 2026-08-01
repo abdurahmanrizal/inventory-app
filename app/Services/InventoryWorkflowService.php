@@ -14,6 +14,8 @@ use App\Models\StockRequest;
 use App\Models\StockReservation;
 use App\Models\User;
 use App\Models\WorkflowApproval;
+use App\Models\WorkflowApprovalStep;
+use App\Notifications\StockRequestWorkflowNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -50,7 +52,7 @@ class InventoryWorkflowService
             throw ValidationException::withMessages(['approver' => 'Approver belum dikonfigurasi untuk dokumen ini.']);
         }
 
-        return DB::transaction(function () use ($module, $document, $creator, $steps) {
+        $approval = DB::transaction(function () use ($module, $document, $creator, $steps) {
             if (WorkflowApproval::where('module', $module)->where('transaction_id', $document->getKey())->exists()) {
                 throw ValidationException::withMessages(['approval' => 'Workflow approval untuk dokumen ini sudah pernah dibuat.']);
             }
@@ -73,6 +75,13 @@ class InventoryWorkflowService
 
             return $approval->load('steps.approver', 'steps.actor');
         });
+
+        $this->scheduleApprovalRequired(
+            $approval,
+            $approval->steps->firstWhere('level', $approval->current_level),
+        );
+
+        return $approval;
     }
 
     public function act(WorkflowApproval $approval, User $actor, string $action, ?string $remarks = null): void
@@ -96,6 +105,8 @@ class InventoryWorkflowService
                     $document->opname()->update(['status' => 'rejected']);
                 }
 
+                $this->scheduleCreatorUpdate($approval, 'request_rejected', $actor, $step);
+
                 return;
             }
 
@@ -110,7 +121,13 @@ class InventoryWorkflowService
             }
 
             if ($approval->current_level < $approval->total_levels) {
+                $nextLevel = $approval->current_level + 1;
                 $approval->increment('current_level');
+                $this->scheduleApprovalRequired(
+                    $approval,
+                    $approval->steps()->where('level', $nextLevel)->first(),
+                    $actor,
+                );
 
                 return;
             }
@@ -127,7 +144,57 @@ class InventoryWorkflowService
             if ($document instanceof StockAdjustment && $document->stock_opname_id) {
                 $document->opname()->update(['status' => 'approved']);
             }
+            $this->scheduleCreatorUpdate($approval, 'request_fully_approved', $actor, $step);
         });
+    }
+
+    private function scheduleApprovalRequired(WorkflowApproval $approval, ?WorkflowApprovalStep $step, ?User $actor = null): void
+    {
+        if ($approval->module !== 'stock_request' || ! $step?->approver_id) {
+            return;
+        }
+
+        $recipientId = $step->approver_id;
+        $notification = new StockRequestWorkflowNotification(
+            event: 'approval_required',
+            workflowApprovalId: $approval->id,
+            transactionId: $approval->transaction_id,
+            transactionNo: $approval->transaction_no,
+            title: 'Request stok menunggu persetujuan',
+            message: $approval->transaction_no.' memerlukan persetujuan Anda pada tahap '.$step->stage_label.'.',
+            actionUrl: '/approvals',
+            stageKey: $step->stage_key,
+            stageLabel: $step->stage_label,
+            actorName: $actor?->name,
+        );
+
+        DB::afterCommit(fn () => User::find($recipientId)?->notify($notification));
+    }
+
+    private function scheduleCreatorUpdate(WorkflowApproval $approval, string $event, User $actor, WorkflowApprovalStep $step): void
+    {
+        if ($approval->module !== 'stock_request') {
+            return;
+        }
+
+        $recipientId = $approval->created_by;
+        $approved = $event === 'request_fully_approved';
+        $notification = new StockRequestWorkflowNotification(
+            event: $event,
+            workflowApprovalId: $approval->id,
+            transactionId: $approval->transaction_id,
+            transactionNo: $approval->transaction_no,
+            title: $approved ? 'Request stok disetujui' : 'Request stok ditolak',
+            message: $approved
+                ? $approval->transaction_no.' telah disetujui seluruh tahap approval.'
+                : $approval->transaction_no.' ditolak oleh '.$actor->name.' pada tahap '.$step->stage_label.'.',
+            actionUrl: '/stock-requests?search='.urlencode($approval->transaction_no),
+            stageKey: $step->stage_key,
+            stageLabel: $step->stage_label,
+            actorName: $actor->name,
+        );
+
+        DB::afterCommit(fn () => User::find($recipientId)?->notify($notification));
     }
 
     public function postGoodsReceipt(GoodsReceipt $receipt): void

@@ -204,6 +204,34 @@ class OperationsController extends Controller
                 'warehouseId' => $request->user()->warehouse_id,
                 'isSuperadmin' => $request->user()->role === UserRole::Superadmin,
             ],
+            'requestStockItems' => $module === 'fulfillment'
+                ? CurrentStock::query()
+                    ->with([
+                        'item:id,code,name,base_uom',
+                        'item.itemUoms' => fn ($query) => $query->where('is_base', true)->with('uom:id,code,name'),
+                        'uom:id,code,name',
+                    ])
+                    ->whereHas('warehouse', fn ($query) => $query->where('type', 'main')->where('is_active', true))
+                    ->whereRaw('(qty_on_hand - qty_reserved) > 0')
+                    ->get(['id', 'warehouse_id', 'item_id', 'uom_id', 'qty_on_hand', 'qty_reserved'])
+                    ->groupBy(fn (CurrentStock $stock) => $stock->warehouse_id.'-'.$stock->item_id)
+                    ->map(function ($stocks) {
+                        /** @var CurrentStock $stock */
+                        $stock = $stocks->first();
+                        $baseUom = $stock->item->itemUoms->first()?->uom;
+
+                        return [
+                            'warehouse_id' => $stock->warehouse_id,
+                            'item_id' => $stock->item_id,
+                            'item' => $stock->item->only(['id', 'code', 'name', 'base_uom']),
+                            'uom_id' => $stock->uom_id ?? $baseUom?->id,
+                            'uom_code' => $stock->uom?->code ?? $baseUom?->code ?? $stock->item->base_uom,
+                            'uom_name' => $stock->uom?->name ?? $baseUom?->name ?? $stock->item->base_uom,
+                            'qty_available' => $stocks->sum(fn (CurrentStock $row) => $row->qty_available),
+                        ];
+                    })
+                    ->values()
+                : [],
         ];
 
         $stockRequests = StockRequest::with([
@@ -452,6 +480,22 @@ class OperationsController extends Controller
         abort_unless($unitManager, 422, 'Manajer unit Anda belum dikonfigurasi.');
         abort_unless($warehouseAdmin, 422, 'Admin gudang sumber belum dikonfigurasi.');
         abort_unless($warehouseManager, 422, 'Manajer gudang sumber belum dikonfigurasi.');
+        $availableStocks = CurrentStock::query()
+            ->where('warehouse_id', $source->id)
+            ->whereIn('item_id', collect($data['details'])->pluck('item_id'))
+            ->whereRaw('(qty_on_hand - qty_reserved) > 0')
+            ->get()
+            ->groupBy('item_id');
+        foreach ($data['details'] as $detail) {
+            $stocks = $availableStocks->get((int) $detail['item_id'], collect());
+            abort_if($stocks->isEmpty(), 422, 'Item yang dipilih tidak tersedia pada gudang sumber.');
+            if (! empty($detail['uom_id'])) {
+                $validUomIds = $stocks->pluck('uom_id')->filter()->map(fn ($id) => (int) $id);
+                $baseUomId = ItemUom::where('item_id', $detail['item_id'])->where('is_base', true)->value('uom_id');
+                abort_unless($validUomIds->contains((int) $detail['uom_id']) || (int) $baseUomId === (int) $detail['uom_id'], 422, 'Satuan item tidak sesuai dengan stok gudang sumber.');
+            }
+            abort_if((float) $detail['qty'] > $stocks->sum(fn (CurrentStock $stock) => $stock->qty_available), 422, 'Jumlah request melebihi stok tersedia pada gudang sumber.');
+        }
         DB::transaction(function () use ($data, $request, $workflow, $destination) {
             $source = Warehouse::findOrFail($data['from_warehouse_id']);
             $unitManager = User::where('role', UserRole::UnitManager)->where('warehouse_id', $destination->id)->firstOrFail();

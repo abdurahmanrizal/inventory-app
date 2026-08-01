@@ -546,6 +546,11 @@ export default function Index({
                           "Bukti pembayaran",
                           transaction.payment_proof_image_path,
                         ],
+                        [
+                          "delivery",
+                          "Bukti pengiriman",
+                          transaction.delivery_proof_image_path,
+                        ],
                       ].map(([kind, label, path]) =>
                         path ? (
                           <button
