@@ -1,0 +1,37 @@
+services:
+  app:
+    # Format penamaan image yang siap untuk workflow GHCR Anda
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-app
+    restart: always
+    env_file:
+      - .env
+    expose:
+      - "80" # Akses HTTP internal untuk Caddy host
+    networks:
+      - production_network
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: inventory-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: wms_bas
+      MYSQL_ROOT_PASSWORD: RubahPassword
+      MYSQL_PASSWORD: RubahPassword
+      MYSQL_USER: inventory-user
+    volumes:
+      - ./db_data:/var/lib/mysql
+    expose:
+      - "3306" # Hindari ekspos DB ke IP publik
+    networks:
+      - production_network
+
+networks:
+  production_network:
+    name: link-utama
+    external: true
