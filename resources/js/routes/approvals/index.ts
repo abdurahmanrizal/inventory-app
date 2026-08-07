@@ -85,7 +85,7 @@ index.form = indexForm
 * @see app/Http/Controllers/ApprovalController.php:199
 * @route '/approvals/{transaction}/approve'
 */
-export const approve = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const approve = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: approve.url(args, options),
     method: 'post',
 })
@@ -100,7 +100,7 @@ approve.definition = {
 * @see app/Http/Controllers/ApprovalController.php:199
 * @route '/approvals/{transaction}/approve'
 */
-approve.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+approve.url = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { transaction: args }
     }
@@ -133,7 +133,7 @@ approve.url = (args: { transaction: number | { id: number } } | [transaction: nu
 * @see app/Http/Controllers/ApprovalController.php:199
 * @route '/approvals/{transaction}/approve'
 */
-approve.post = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+approve.post = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: approve.url(args, options),
     method: 'post',
 })
@@ -143,7 +143,7 @@ approve.post = (args: { transaction: number | { id: number } } | [transaction: n
 * @see app/Http/Controllers/ApprovalController.php:199
 * @route '/approvals/{transaction}/approve'
 */
-const approveForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const approveForm = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: approve.url(args, options),
     method: 'post',
 })
@@ -153,7 +153,7 @@ const approveForm = (args: { transaction: number | { id: number } } | [transacti
 * @see app/Http/Controllers/ApprovalController.php:199
 * @route '/approvals/{transaction}/approve'
 */
-approveForm.post = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+approveForm.post = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: approve.url(args, options),
     method: 'post',
 })
@@ -165,7 +165,7 @@ approve.form = approveForm
 * @see app/Http/Controllers/ApprovalController.php:213
 * @route '/approvals/{transaction}/reject'
 */
-export const reject = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const reject = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: reject.url(args, options),
     method: 'post',
 })
@@ -180,7 +180,7 @@ reject.definition = {
 * @see app/Http/Controllers/ApprovalController.php:213
 * @route '/approvals/{transaction}/reject'
 */
-reject.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+reject.url = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { transaction: args }
     }
@@ -213,7 +213,7 @@ reject.url = (args: { transaction: number | { id: number } } | [transaction: num
 * @see app/Http/Controllers/ApprovalController.php:213
 * @route '/approvals/{transaction}/reject'
 */
-reject.post = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+reject.post = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: reject.url(args, options),
     method: 'post',
 })
@@ -223,7 +223,7 @@ reject.post = (args: { transaction: number | { id: number } } | [transaction: nu
 * @see app/Http/Controllers/ApprovalController.php:213
 * @route '/approvals/{transaction}/reject'
 */
-const rejectForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const rejectForm = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: reject.url(args, options),
     method: 'post',
 })
@@ -233,7 +233,7 @@ const rejectForm = (args: { transaction: number | { id: number } } | [transactio
 * @see app/Http/Controllers/ApprovalController.php:213
 * @route '/approvals/{transaction}/reject'
 */
-rejectForm.post = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+rejectForm.post = (args: { transaction: string | number | { id: string | number } } | [transaction: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: reject.url(args, options),
     method: 'post',
 })

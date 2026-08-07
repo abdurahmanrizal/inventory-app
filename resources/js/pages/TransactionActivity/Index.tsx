@@ -242,6 +242,7 @@ export default function Index({
                       "Stok awal",
                       "Perubahan",
                       "HPP",
+                      "Nilai transaksi",
                       "Saldo akhir",
                       "Pelaksana",
                     ].map((x) => (
@@ -284,6 +285,8 @@ export default function Index({
                         <p className="mt-1 text-xs text-slate-400">
                           {row.stock_transaction?.number ||
                             `Referensi #${row.reference_id || "-"}`}
+                          {row.stock_transaction?.status === "cancelled" &&
+                            " · Dibatalkan"}
                         </p>
                       </td>
                       <td className="px-5 py-4">
@@ -309,6 +312,9 @@ export default function Index({
                       </td>
                       <td className="whitespace-nowrap px-5 py-4">
                         {money(Number(row.unit_cost))}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-700">
+                        {money(Number(row.qty) * Number(row.unit_cost))}
                       </td>
                       <td className="px-5 py-4 font-semibold">
                         {number(Number(row.balance_qty))}

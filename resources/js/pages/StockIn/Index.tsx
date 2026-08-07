@@ -415,7 +415,7 @@ export default function Index({
                 </div>
                 <div className="grid gap-4 md:grid-cols-12">
                   <label
-                    className={`space-y-2 ${isUnitRequest ? "md:col-span-5" : "md:col-span-4"}`}
+                    className={`space-y-2 ${isUnitRequest ? "md:col-span-5" : "md:col-span-3"}`}
                   >
                     <span className="text-xs font-semibold text-slate-600">
                       Produk
@@ -425,6 +425,22 @@ export default function Index({
                       items={items}
                       placeholder="Cari kode atau nama produk"
                       onChange={(itemId) => setDetail(index, "item_id", itemId)}
+                    />
+                  </label>
+                  <label className="space-y-2 md:col-span-1">
+                    <span className="text-xs font-semibold text-slate-600">
+                      Satuan
+                    </span>
+                    <input
+                      readOnly
+                      aria-label={`Satuan dasar item ${index + 1}`}
+                      className={`${fieldClass} cursor-not-allowed bg-slate-100 font-semibold text-slate-600`}
+                      value={
+                        items.find(
+                          (item) => String(item.id) === String(detail.item_id),
+                        )?.base_uom || ""
+                      }
+                      placeholder="—"
                     />
                   </label>
                   {!isUnitRequest && (

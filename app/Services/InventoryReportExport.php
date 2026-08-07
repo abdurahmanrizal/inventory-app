@@ -88,6 +88,16 @@ class InventoryReportExport
     public function table(string $report, array $data): array
     {
         return match ($report) {
+            'purchase-history' => [
+                ['Nomor Stock In', 'Tanggal Dokumen', 'Supplier', 'Gudang', 'Kode Item', 'Nama Item', 'Batch', 'Qty Diterima', 'Biaya Unit', 'Nilai Pembelian', 'Dibuat Oleh', 'Disetujui Manajer', 'Waktu Approval', 'Waktu Posting', 'Metode Valuasi', 'Layer FIFO'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['transaction_number'], $row['document_date'], $row['supplier_name'], $row['warehouse_name'],
+                    $row['item_code'], $row['item_name'], $row['batch_no'] ?: '-', $row['qty'], $row['unit_cost'],
+                    $row['total_value'], $row['created_by_name'], $row['approved_by_name'], $row['approved_at'], $row['posted_at'],
+                    $row['valuation_method'] === 'fifo' ? 'FIFO' : 'Moving Average',
+                    $row['fifo_layer_ids'] ? collect($row['fifo_layer_ids'])->map(fn ($id) => '#'.$id)->join(', ') : '-',
+                ])->all(),
+            ],
             'slow-moving' => [
                 ['Gudang', 'Kode Item', 'Nama Item', 'Kategori', 'Qty', 'Terakhir Bergerak', 'Hari Tidak Aktif', 'Status', 'Nilai'],
                 collect($data['rows'])->map(fn ($row) => [
@@ -97,10 +107,11 @@ class InventoryReportExport
                 ])->all(),
             ],
             'opname' => [
-                ['Nomor', 'Tanggal', 'Gudang', 'Kode Item', 'Nama Item', 'Batch', 'Qty Sistem', 'Qty Fisik', 'Selisih', 'Nilai Selisih', 'Status', 'Dibuat Oleh'],
+                ['Nomor', 'Tanggal', 'Gudang', 'Kode Item', 'Nama Item', 'Batch', 'Qty Sistem', 'Qty Fisik', 'Selisih', 'Metode Valuasi', 'Biaya Unit', 'Nilai Selisih', 'Status', 'Dibuat Oleh'],
                 collect($data['rows'])->map(fn ($row) => [
                     $row['number'], $row['opname_date'], $row['warehouse_name'], $row['item_code'], $row['item_name'],
                     $row['batch_no'] ?: '-', $row['system_qty'], $row['count_qty'], $row['diff_qty'],
+                    $row['valuation_method'] === 'fifo' ? 'FIFO' : 'Moving Average', $row['valuation_cost'],
                     $row['difference_value'], $row['status'], $row['creator_name'],
                 ])->all(),
             ],
@@ -109,12 +120,54 @@ class InventoryReportExport
                 collect($data['warehouses'])->map(fn ($row) => ['Gudang', $row['name'], $row['qty'], $row['value']])
                     ->concat(collect($data['categories'])->map(fn ($row) => ['Kategori', $row['name'], $row['qty'], $row['value']]))->all(),
             ],
-            'cost-history' => [
+            'cost-history' => ($data['method'] ?? 'moving_average') === 'fifo' ? [
+                ['Tanggal Keluar', 'Gudang', 'Kode Item', 'Nama Item', 'Batch', 'Referensi Keluar', 'Layer', 'Tanggal Layer', 'Referensi Layer', 'Qty Awal Layer', 'Qty Dipakai', 'Sisa Layer', 'Biaya Unit', 'Total Biaya', 'Petugas'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['date'], data_get($row, 'warehouse.name'), data_get($row, 'item.code'), data_get($row, 'item.name'),
+                    $row['batch_no'] ?: '-', $row['issue_reference'], $row['layer_id'] ? '#'.$row['layer_id'] : '-',
+                    $row['layer_received_at'] ?: '-', $row['layer_reference'], $row['layer_original_qty'], $row['consumed_qty'],
+                    $row['layer_balance_qty'] ?? '-', $row['unit_cost'], $row['total_cost'], $row['creator'] ?: '-',
+                ])->all(),
+            ] : [
                 ['Tanggal', 'Gudang', 'Kode Item', 'Nama Item', 'Referensi', 'Supplier', 'Batch', 'Qty Masuk', 'HPP Sebelum', 'HPP Masuk', 'HPP Sesudah', 'Selisih', 'Perubahan %'],
                 collect($data['rows'])->map(fn ($row) => [
                     $row['date'], data_get($row, 'warehouse.name'), data_get($row, 'item.code'), data_get($row, 'item.name'),
-                    $row['reference'], $row['supplier'] ?: '-', $row['batch_no'] ?: '-', $row['qty'],
+                    $row['reference'], $row['supplier'] ?: '-', $row['batch_no'] ?: '-', $row['incoming_qty'],
                     $row['cost_before'], $row['incoming_cost'], $row['cost_after'], $row['difference'], $row['percentage'],
+                ])->all(),
+            ],
+            'financial-movement' => [
+                ['Gudang', 'Kode Item', 'Nama Item', 'Qty Masuk', 'Nilai Masuk', 'Qty Keluar', 'Nilai Keluar', 'Perubahan Bersih'],
+                collect($data['rows'])->map(fn ($row) => [
+                    data_get($row, 'warehouse.name'), data_get($row, 'item.code'), data_get($row, 'item.name'),
+                    $row['qty_in'], $row['value_in'], $row['qty_out'], $row['value_out'], $row['net_value'],
+                ])->all(),
+            ],
+            'issue-cost' => [
+                ['Tanggal', 'Gudang', 'Referensi', 'Kode Item', 'Nama Item', 'Batch', 'Qty', 'Biaya Unit', 'Total Biaya', 'Klasifikasi', 'Debit', 'Kredit'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['date'], data_get($row, 'warehouse.name'), $row['reference'], data_get($row, 'item.code'), data_get($row, 'item.name'),
+                    $row['batch_no'] ?: '-', $row['qty'], $row['unit_cost'], $row['total_cost'], $row['classification'], $row['journal_debit'], $row['journal_credit'],
+                ])->all(),
+            ],
+            'valuation-audit' => $data['method'] === 'fifo' ? [
+                ['Tanggal Masuk', 'Gudang', 'Kode Item', 'Nama Item', 'Referensi', 'Batch', 'Qty Awal', 'Qty Tersisa', 'Biaya Unit', 'Nilai Tersisa', 'Umur (hari)'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['date'], data_get($row, 'warehouse.name'), data_get($row, 'item.code'), data_get($row, 'item.name'),
+                    $row['reference'], $row['batch_no'] ?: '-', $row['original_qty'], $row['remaining_qty'], $row['unit_cost'], $row['remaining_value'], $row['age_days'],
+                ])->all(),
+            ] : [
+                ['Tanggal', 'Gudang', 'Kode Item', 'Nama Item', 'Referensi', 'Batch', 'Qty Masuk', 'Biaya Sebelum', 'Biaya Masuk', 'Biaya Sesudah', 'Selisih'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['date'], data_get($row, 'warehouse.name'), data_get($row, 'item.code'), data_get($row, 'item.name'),
+                    $row['reference'], $row['batch_no'] ?: '-', $row['incoming_qty'], $row['cost_before'], $row['incoming_cost'], $row['cost_after'], $row['difference'],
+                ])->all(),
+            ],
+            'anomalies' => [
+                ['Jenis', 'Severity', 'Gudang', 'Kode Item', 'Nama Item', 'Batch', 'Qty', 'Nilai', 'Keterangan'],
+                collect($data['rows'])->map(fn ($row) => [
+                    $row['type'], $row['severity'], data_get($row, 'warehouse.name', '-'), data_get($row, 'item.code', '-'), data_get($row, 'item.name', '-'),
+                    $row['batch_no'] ?: '-', $row['qty'], $row['value'], $row['message'],
                 ])->all(),
             ],
             default => $this->groupedLedgerTable($data),
@@ -156,10 +209,15 @@ class InventoryReportExport
     {
         return [
             'ledger' => 'Kartu Stok',
+            'purchase-history' => 'Laporan Pembelian Persediaan',
             'slow-moving' => 'Slow & Dead Stock',
             'opname' => 'Hasil Opname',
             'valuation' => 'Nilai Persediaan',
             'cost-history' => 'Riwayat HPP',
+            'financial-movement' => 'Mutasi Nilai & Rekonsiliasi Persediaan',
+            'issue-cost' => 'Biaya Pengeluaran & Draft Jurnal',
+            'valuation-audit' => 'Audit Metode Valuasi',
+            'anomalies' => 'Anomali Persediaan',
         ][$report] ?? 'Laporan Persediaan';
     }
 }

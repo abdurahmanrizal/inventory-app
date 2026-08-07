@@ -9,6 +9,7 @@ enum UserRole: string
     case WarehouseAdminWet = 'warehouse_admin_wet';
     case UnitUser = 'unit_user';
     case UnitManager = 'unit_manager';
+    case Finance = 'finance';
 
     public function isWarehouseAdmin(): bool
     {

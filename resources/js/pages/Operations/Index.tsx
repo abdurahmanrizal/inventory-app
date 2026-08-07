@@ -204,6 +204,8 @@ export default function Operations({
   fulfillmentAccess,
   requestStockItems,
   initialMaster,
+  valuationMethod,
+  initialItemWarehouse,
 }: any) {
   const [kind, setKind] = useState(
     module === "purchasing"
@@ -255,6 +257,7 @@ export default function Operations({
         item_id: "",
         uom_id: "",
         qty: 1,
+        unit_price: "",
         batch_no: "",
         location_id: "",
       },
@@ -280,14 +283,6 @@ export default function Operations({
     adjustment: "/operations/inventory-control/adjustments",
     opname: "/operations/inventory-control/opnames",
   };
-  const opnameItems = items.filter((item: any) =>
-    records?.stocks?.some(
-      (stock: any) =>
-        Number(stock.warehouse_id) === Number(form.data.warehouse_id) &&
-        Number(stock.item_id) === Number(item.id) &&
-        Number(stock.qty_on_hand) > 0,
-    ),
-  );
   const availableRequestItems = (requestStockItems || []).filter(
     (stock: any) =>
       Number(stock.warehouse_id) === Number(form.data.from_warehouse_id),
@@ -1031,11 +1026,12 @@ export default function Operations({
                       form.setData({
                         ...form.data,
                         warehouse_id: e.target.value,
-                        ...(kind === "opname"
+                        ...(["adjustment", "opname"].includes(kind)
                           ? {
                               details: form.data.details.map((row: any) => ({
                                 ...row,
                                 item_id: "",
+                                uom_id: "",
                               })),
                             }
                           : {}),
@@ -1084,6 +1080,15 @@ export default function Operations({
               )}
               {["adjustment", "opname"].includes(kind) && (
                 <div className="space-y-3 sm:col-span-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                    Metode valuasi aktif: {" "}
+                    <span className="font-semibold text-slate-800">
+                      {valuationMethod === "fifo" ? "FIFO" : "Moving Average"}
+                    </span>
+                    . {kind === "opname"
+                      ? "Selisih kurang memakai biaya aktual saat approval; surplus memakai biaya stok aktif yang disimpan sebagai snapshot."
+                      : "Pengurangan memakai biaya aktual otomatis; penambahan memerlukan biaya unit."}
+                  </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-slate-800">
@@ -1105,6 +1110,7 @@ export default function Operations({
                             item_id: "",
                             uom_id: "",
                             qty: kind === "opname" ? 0 : 1,
+                            unit_price: "",
                             batch_no: "",
                             location_id: "",
                           },
@@ -1116,6 +1122,19 @@ export default function Operations({
                     </button>
                   </div>
                   {form.data.details.map((detail: any, index: number) => {
+                    const warehouseItemIds = new Set(
+                      (records?.stocks || [])
+                        .filter(
+                          (stock: any) =>
+                            Number(stock.warehouse_id) ===
+                              Number(form.data.warehouse_id) &&
+                            Number(stock.qty_on_hand) > 0,
+                        )
+                        .map((stock: any) => Number(stock.item_id)),
+                    );
+                    const availableInventoryItems = items.filter((item: any) =>
+                      warehouseItemIds.has(Number(item.id)),
+                    );
                     const selectedItem = items.find(
                       (item: any) => Number(item.id) === Number(detail.item_id),
                     );
@@ -1158,13 +1177,24 @@ export default function Operations({
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <Field label="Item">
-                            <Select
+                            <SearchableSelect
                               value={detail.item_id}
-                              onChange={(e: any) => {
+                              placeholder={
+                                form.data.warehouse_id
+                                  ? "Cari item pada gudang ini"
+                                  : "Pilih gudang terlebih dahulu"
+                              }
+                              options={availableInventoryItems.map(
+                                (item: any) => ({
+                                  value: item.id,
+                                  label: `${item.code} — ${item.name}`,
+                                }),
+                              )}
+                              onChange={(itemId: string) => {
                                 const item = items.find(
                                   (candidate: any) =>
                                     Number(candidate.id) ===
-                                    Number(e.target.value),
+                                    Number(itemId),
                                 );
                                 const itemBaseUom = item?.item_uoms?.find(
                                   (itemUom: any) => itemUom.is_base,
@@ -1176,22 +1206,14 @@ export default function Operations({
                                       i === index
                                         ? {
                                             ...row,
-                                            item_id: e.target.value,
+                                            item_id: itemId,
                                             uom_id: itemBaseUom?.uom_id || "",
                                           }
                                         : row,
                                   ),
                                 );
                               }}
-                            >
-                              {(kind === "opname" ? opnameItems : items).map(
-                                (item: any) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.code} — {item.name}
-                                  </option>
-                                ),
-                              )}
-                            </Select>
+                            />
                           </Field>
                           <Field label="Satuan">
                             <Select
@@ -1238,6 +1260,28 @@ export default function Operations({
                           </Field>
                           {kind === "adjustment" && (
                             <>
+                              {Number(detail.qty) > 0 ? (
+                                <Field
+                                  label={`Biaya / ${baseUom?.uom?.code || "satuan dasar"}`}
+                                >
+                                  <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    required
+                                    className={input}
+                                    value={detail.unit_price ?? ""}
+                                    onChange={(e) =>
+                                      updateDetail("unit_price", e.target.value)
+                                    }
+                                    placeholder="Wajib untuk qty positif"
+                                  />
+                                </Field>
+                              ) : (
+                                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs leading-5 text-slate-500">
+                                  Biaya pengurangan dihitung otomatis sesuai {valuationMethod === "fifo" ? "layer FIFO" : "Moving Average"}.
+                                </div>
+                              )}
                               <Field label="Nomor batch">
                                 <input
                                   className={input}
@@ -1611,6 +1655,7 @@ export default function Operations({
             records={records}
             onEdit={startEdit}
             masterKind={kind}
+            initialItemWarehouse={initialItemWarehouse}
           />
         </Card>
       </div>
@@ -1618,10 +1663,10 @@ export default function Operations({
   );
 }
 
-function RecordList({ module, records, onEdit, masterKind }: any) {
+function RecordList({ module, records, onEdit, masterKind, initialItemWarehouse }: any) {
   if (module === "master-data") {
     return (
-      <MasterDataList records={records} onEdit={onEdit} kind={masterKind} />
+      <MasterDataList records={records} onEdit={onEdit} kind={masterKind} initialItemWarehouse={initialItemWarehouse} />
     );
   }
 
@@ -2054,7 +2099,8 @@ function RequestStockList({ records }: any) {
   );
 }
 
-function MasterDataList({ records, onEdit, kind }: any) {
+function MasterDataList({ records, onEdit, kind, initialItemWarehouse }: any) {
+  const paginatedItems = records.items?.data ? records.items : null;
   const groupMap: Record<string, any> = {
     supplier: [
       "Supplier",
@@ -2076,7 +2122,7 @@ function MasterDataList({ records, onEdit, kind }: any) {
     ],
     item: [
       "Item",
-      records.items || [],
+      paginatedItems?.data || records.items || [],
       (row: any) => row.name,
       (row: any) =>
         `${row.code} · ${row.base_uom} · ${row.category?.name || "Tanpa kategori"}`,
@@ -2086,6 +2132,27 @@ function MasterDataList({ records, onEdit, kind }: any) {
 
   return (
     <div className="space-y-5">
+      {kind === "item" && (
+        <div className="flex gap-2 rounded-xl bg-slate-100 p-1">
+          {[
+            ["dry", "Gudang Utama Kering"],
+            ["wet", "Gudang Utama Basah"],
+          ].map(([value, label]) => (
+            <Link
+              key={value}
+              href={`/operations/master-data?master=item&item_warehouse=${value}`}
+              preserveScroll
+              className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold transition ${
+                initialItemWarehouse === value
+                  ? "bg-white text-emerald-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
       {groups.map(([title, rows, getTitle, getMeta]: any) => (
         <section key={title}>
           <div className="mb-2 flex items-center justify-between">
@@ -2093,7 +2160,7 @@ function MasterDataList({ records, onEdit, kind }: any) {
               {title}
             </h3>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
-              {rows.length}
+              {kind === "item" && paginatedItems ? paginatedItems.total : rows.length}
             </span>
           </div>
           <div className="space-y-2">
@@ -2144,6 +2211,36 @@ function MasterDataList({ records, onEdit, kind }: any) {
           </div>
         </section>
       ))}
+      {kind === "item" && paginatedItems?.last_page > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-500">
+            Menampilkan {paginatedItems.from}–{paginatedItems.to} dari {paginatedItems.total} item
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {paginatedItems.links.map((link: any, index: number) => (
+              link.url ? (
+                <Link
+                  key={index}
+                  href={link.url}
+                  preserveScroll
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                    link.active
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
+                  }`}
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                />
+              ) : (
+                <span
+                  key={index}
+                  className="rounded-lg border border-slate-100 px-3 py-1.5 text-xs text-slate-300"
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                />
+              )
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

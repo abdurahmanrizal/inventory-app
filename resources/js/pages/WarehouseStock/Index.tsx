@@ -2,6 +2,7 @@ import { Head, router } from "@inertiajs/react";
 import {
   Banknote,
   Boxes,
+  Layers3,
   PackageCheck,
   RefreshCw,
   Search,
@@ -11,6 +12,13 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -38,11 +46,13 @@ export default function Index({
   canFilterWarehouse,
   accessLabel,
   summary,
+  valuationMethod,
 }: any) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => new Date());
+  const [layerStock, setLayerStock] = useState<any>(null);
   const refreshInProgress = useRef(false);
 
   const refreshStocks = useCallback(() => {
@@ -119,6 +129,10 @@ export default function Index({
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.07] px-3 py-1.5 text-xs text-emerald-300">
               <ShieldCheck size={14} />
               {accessLabel}
+            </span>
+            <span className="ml-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-3 py-1.5 text-xs text-slate-300">
+              <Layers3 size={14} />
+              Valuasi: {valuationMethod === "fifo" ? "FIFO" : "Moving Average"}
             </span>
             <h2 className="mt-4 text-2xl font-semibold">
               Saldo persediaan terkini
@@ -317,7 +331,7 @@ export default function Index({
                     "Stok fisik",
                     "Reservasi",
                     "Tersedia",
-                    "Harga",
+                    "Biaya / HPP",
                     "Nilai",
                   ].map((header) => (
                     <th key={header} className="whitespace-nowrap px-5 py-3.5">
@@ -367,7 +381,21 @@ export default function Index({
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4">
-                      {money(row.average_cost)}
+                      <span className="block">{money(row.average_cost)}</span>
+                      <small className="mt-1 block text-slate-400">
+                        {valuationMethod === "fifo"
+                          ? "Rata-rata layer tersisa"
+                          : "Rata-rata berjalan"}
+                      </small>
+                      {valuationMethod === "fifo" && (
+                        <button
+                          type="button"
+                          onClick={() => setLayerStock(row)}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
+                        >
+                          <Layers3 size={13} /> Lihat {row.cost_layers.length} layer
+                        </button>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 font-semibold">
                       {money(row.stock_value)}
@@ -391,6 +419,63 @@ export default function Index({
           </div>
         )}
       </section>
+
+      <Dialog open={Boolean(layerStock)} onOpenChange={(open) => !open && setLayerStock(null)}>
+        <DialogContent className="max-w-4xl overflow-hidden border-slate-200 bg-white p-0 shadow-xl">
+          <DialogHeader className="border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <span className="grid size-8 place-items-center rounded-lg bg-slate-200/70 text-slate-600">
+                <Layers3 size={16} />
+              </span>
+              Layer biaya FIFO
+            </DialogTitle>
+            <DialogDescription>
+              {layerStock?.item.name} · {layerStock?.warehouse.name} · Batch {layerStock?.batch_no || "-"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 text-left text-[11px] uppercase tracking-[.1em] text-slate-500">
+                <tr>
+                  {['Tanggal masuk', 'Referensi', 'Qty awal', 'Qty tersisa', 'Biaya unit', 'Nilai tersisa'].map((header) => (
+                    <th key={header} className="whitespace-nowrap px-5 py-3">{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {layerStock?.cost_layers.map((layer: any) => (
+                  <tr key={layer.id} className="transition-colors hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                      {layer.received_at
+                        ? new Date(layer.received_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+                        : '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                      {layer.reference_type || '-'} {layer.reference_id ? `#${layer.reference_id}` : ''}
+                    </td>
+                    <td className="px-5 py-4">{number(layer.original_qty)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-700">{number(layer.remaining_qty)}</td>
+                    <td className="whitespace-nowrap px-5 py-4">{money(layer.unit_cost)}</td>
+                    <td className="whitespace-nowrap px-5 py-4 font-semibold">{money(layer.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-slate-200 bg-slate-50 font-semibold">
+                <tr>
+                  <td colSpan={3} className="px-5 py-4 text-right">Total layer tersisa</td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {number(layerStock?.cost_layers.reduce((total: number, layer: any) => total + layer.remaining_qty, 0) || 0)}
+                  </td>
+                  <td />
+                  <td className="whitespace-nowrap px-5 py-4">
+                    {money(layerStock?.cost_layers.reduce((total: number, layer: any) => total + layer.value, 0) || 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

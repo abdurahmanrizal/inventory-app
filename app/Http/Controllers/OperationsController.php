@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\CurrentStock;
 use App\Models\Delivery;
+use App\Models\InventorySetting;
 use App\Models\Item;
 use App\Models\ItemUom;
 use App\Models\Location;
@@ -165,6 +166,10 @@ class OperationsController extends Controller
         $isSuperadmin = $user->role === UserRole::Superadmin;
         $scopeToUserWarehouse = $module === 'inventory-control' && ! $isSuperadmin;
         $warehouseIds = $scopeToUserWarehouse ? [$user->warehouse_id] : null;
+        $itemWarehouse = $request->query('item_warehouse', 'dry');
+        if (! in_array($itemWarehouse, ['dry', 'wet'], true)) {
+            $itemWarehouse = 'dry';
+        }
 
         $base = [
             'module' => $module,
@@ -204,6 +209,8 @@ class OperationsController extends Controller
                 'warehouseId' => $request->user()->warehouse_id,
                 'isSuperadmin' => $request->user()->role === UserRole::Superadmin,
             ],
+            'valuationMethod' => InventorySetting::current()->valuation_method->value,
+            'initialItemWarehouse' => $itemWarehouse,
             'requestStockItems' => $module === 'fulfillment'
                 ? CurrentStock::query()
                     ->with([
@@ -263,7 +270,11 @@ class OperationsController extends Controller
                 'suppliers' => Supplier::latest()->get(),
                 'uoms' => Uom::latest()->get(),
                 'locations' => Location::with('warehouse:id,name')->latest()->get(),
-                'items' => Item::with('category:id,name')->latest()->get(),
+                'items' => Item::with('category:id,name')
+                    ->whereIn('warehouse_type', [$itemWarehouse, 'both'])
+                    ->latest()
+                    ->paginate(10, ['*'], 'item_page')
+                    ->withQueryString(),
             ],
             'fulfillment' => [
                 'requests' => $stockRequests,
@@ -575,13 +586,21 @@ class OperationsController extends Controller
             'details.*.item_id' => ['required', 'distinct', 'exists:items,id'],
             'details.*.uom_id' => ['nullable', 'exists:uoms,id'],
             'details.*.qty' => ['required', 'numeric', 'not_in:0'],
+            'details.*.unit_price' => ['nullable', 'numeric', 'gt:0'],
             'details.*.batch_no' => ['nullable', 'string', 'max:100'],
             'details.*.location_id' => ['nullable', 'exists:locations,id'],
         ]);
+        foreach ($data['details'] as $index => $detail) {
+            if ((float) $detail['qty'] > 0 && empty($detail['unit_price'])) {
+                throw ValidationException::withMessages([
+                    "details.{$index}.unit_price" => 'Biaya unit wajib diisi untuk penambahan stok.',
+                ]);
+            }
+        }
         $data['warehouse_id'] = $this->resolveOperatorWarehouse($request, (int) $data['warehouse_id']);
         $manager = $this->warehouseManager($data['warehouse_id']);
         DB::transaction(function () use ($data, $request, $workflow, $manager) {
-            $adjustment = StockAdjustment::create(['number' => $this->number('ADJ'), 'type' => $data['type'], 'warehouse_id' => $data['warehouse_id'], 'adjustment_date' => now(), 'reason' => $data['reason'], 'created_by' => $request->user()->id, 'assigned_approver_id' => $manager->id]);
+            $adjustment = StockAdjustment::create(['number' => $this->number('ADJ'), 'type' => $data['type'], 'valuation_method' => InventorySetting::current()->valuation_method, 'warehouse_id' => $data['warehouse_id'], 'adjustment_date' => now(), 'reason' => $data['reason'], 'created_by' => $request->user()->id, 'assigned_approver_id' => $manager->id]);
             foreach ($data['details'] as $detail) {
                 [$baseQty, $baseUomId] = $this->quantityInBaseUom(
                     (int) $detail['item_id'],
@@ -592,7 +611,7 @@ class OperationsController extends Controller
                     'item_id' => $detail['item_id'],
                     'uom_id' => $baseUomId,
                     'qty_adjustment' => $baseQty,
-                    'unit_price' => null,
+                    'unit_price' => $baseQty > 0 ? $detail['unit_price'] : null,
                     'batch_no' => $detail['batch_no'] ?? null,
                     'location_id' => $detail['location_id'] ?? null,
                 ]);
@@ -631,7 +650,7 @@ class OperationsController extends Controller
         );
         DB::transaction(function () use ($data, $request, $workflow, $manager) {
             $opname = StockOpname::create(['number' => $this->number('OPN'), 'warehouse_id' => $data['warehouse_id'], 'opname_date' => now(), 'status' => 'waiting_approval', 'notes' => $data['notes'] ?? null, 'created_by' => $request->user()->id, 'assigned_approver_id' => $manager->id]);
-            $adjustment = StockAdjustment::create(['number' => $this->number('ADJ-OPN'), 'stock_opname_id' => $opname->id, 'type' => 'opname', 'warehouse_id' => $data['warehouse_id'], 'adjustment_date' => now(), 'status' => 'draft', 'reason' => 'Selisih '.$opname->number, 'created_by' => $request->user()->id, 'assigned_approver_id' => $manager->id]);
+            $adjustment = StockAdjustment::create(['number' => $this->number('ADJ-OPN'), 'stock_opname_id' => $opname->id, 'type' => 'opname', 'valuation_method' => InventorySetting::current()->valuation_method, 'warehouse_id' => $data['warehouse_id'], 'adjustment_date' => now(), 'status' => 'draft', 'reason' => 'Selisih '.$opname->number, 'created_by' => $request->user()->id, 'assigned_approver_id' => $manager->id]);
             foreach ($data['details'] as $detail) {
                 [$countQty, $baseUomId] = $this->quantityInBaseUom(
                     (int) $detail['item_id'],
@@ -641,7 +660,15 @@ class OperationsController extends Controller
                 $systemQty = (float) CurrentStock::where('warehouse_id', $data['warehouse_id'])->where('item_id', $detail['item_id'])->sum('qty_on_hand');
                 $diff = $countQty - $systemQty;
                 $opname->details()->create(['item_id' => $detail['item_id'], 'uom_id' => $baseUomId, 'system_qty' => $systemQty, 'count_qty' => $countQty, 'diff_qty' => $diff]);
-                $adjustment->details()->create(['item_id' => $detail['item_id'], 'uom_id' => $baseUomId, 'qty_adjustment' => $diff, 'unit_price' => null]);
+                $cost = $diff > 0
+                    ? $workflow->currentAdjustmentCost($data['warehouse_id'], (int) $detail['item_id'])
+                    : null;
+                if ($diff > 0 && $cost <= 0) {
+                    throw ValidationException::withMessages([
+                        'details' => 'Biaya stok item tidak tersedia untuk mencatat surplus opname.',
+                    ]);
+                }
+                $adjustment->details()->create(['item_id' => $detail['item_id'], 'uom_id' => $baseUomId, 'qty_adjustment' => $diff, 'unit_price' => $cost]);
             }
             $workflow->requestApproval('stock_adjustment', $adjustment, $request->user(), [[
                 'stage_key' => 'warehouse_manager',

@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
         foreach (UserRole::cases() as $role) {
             DB::table('roles')->updateOrInsert(
                 ['code' => $role->value],
-                ['name' => ucwords(str_replace('_', ' ', $role->value)), 'description' => 'Role sistem WMS', 'updated_at' => now(), 'created_at' => now()],
+                ['name' => $role === UserRole::Finance ? 'Keuangan' : ucwords(str_replace('_', ' ', $role->value)), 'description' => 'Role sistem WMS', 'updated_at' => now(), 'created_at' => now()],
             );
         }
 
@@ -86,6 +86,7 @@ class DatabaseSeeder extends Seeder
     {
         $accounts = [
             ['Super Admin', 'superadmin@wms.test', UserRole::Superadmin, null],
+            ['Keuangan', 'keuangan@wms.test', UserRole::Finance, null],
             ['Admin Gudang Kering', 'admin.kering@wms.test', UserRole::WarehouseAdminDry, $warehouses['dry']->id],
             ['Manajer Gudang Kering', 'manager.kering@wms.test', UserRole::UnitManager, $warehouses['dry']->id],
             ['Admin Gudang Basah', 'admin.basah@wms.test', UserRole::WarehouseAdminWet, $warehouses['wet']->id],

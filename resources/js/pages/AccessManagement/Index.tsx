@@ -17,6 +17,7 @@ const roleLabels: Record<string, string> = {
   warehouse_admin_wet: "Admin Gudang Basah",
   unit_user: "Admin Unit",
   unit_manager: "Manajer Unit / Gudang",
+  finance: "Keuangan",
 };
 
 export default function Index({ roles, permissions, assigned }: any) {

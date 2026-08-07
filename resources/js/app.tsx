@@ -41,6 +41,7 @@ createInertiaApp({
       "RoleManagement/",
       "PermissionManagement/",
       "Reports/",
+      "settings/inventory-valuation",
     ];
 
     if (

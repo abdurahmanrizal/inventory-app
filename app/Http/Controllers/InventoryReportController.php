@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventorySetting;
 use App\Services\InventoryReportExport;
 use App\Services\InventoryReportService;
 use Dompdf\Dompdf;
@@ -26,6 +27,7 @@ class InventoryReportController extends Controller
             'items' => $reports->items($context['warehouseIds']),
             'canFilterWarehouse' => $context['canFilterWarehouse'],
             'accessLabel' => $context['accessLabel'],
+            'valuationMethod' => InventorySetting::current()->valuation_method->value,
         ]);
     }
 
@@ -64,10 +66,12 @@ class InventoryReportController extends Controller
     private function reportData(Request $request, InventoryReportService $reports): array
     {
         $filters = $request->validate([
-            'report' => ['nullable', Rule::in(['ledger', 'slow-moving', 'opname', 'valuation', 'cost-history'])],
+            'report' => ['nullable', Rule::in(['ledger', 'slow-moving', 'opname', 'valuation', 'cost-history', 'financial-movement', 'issue-cost', 'valuation-audit', 'anomalies', 'purchase-history'])],
             'warehouse_id' => ['nullable', 'integer'],
             'item_id' => ['nullable', 'integer', 'exists:items,id'],
             'batch_no' => ['nullable', 'string', 'max:100'],
+            'supplier_name' => ['nullable', 'string', 'max:150'],
+            'search' => ['nullable', 'string', 'max:100'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'days' => ['nullable', 'integer', Rule::in([30, 60, 90, 180, 365])],
@@ -84,6 +88,11 @@ class InventoryReportController extends Controller
             'opname' => $reports->opname($context['warehouseIds'], $context['warehouseId'], $filters),
             'valuation' => $reports->valuation($context['warehouseIds'], $context['warehouseId']),
             'cost-history' => $reports->costHistory($context['warehouseIds'], $context['warehouseId'], $filters),
+            'financial-movement' => $reports->financialMovement($context['warehouseIds'], $context['warehouseId'], $filters),
+            'issue-cost' => $reports->issueCost($context['warehouseIds'], $context['warehouseId'], $filters),
+            'valuation-audit' => $reports->valuationAudit($context['warehouseIds'], $context['warehouseId'], $filters),
+            'anomalies' => $reports->anomalies($context['warehouseIds'], $context['warehouseId']),
+            'purchase-history' => $reports->purchaseHistory($context['warehouseIds'], $context['warehouseId'], $filters),
             default => $reports->stockLedger($context['warehouseIds'], $context['warehouseId'], $filters),
         };
 

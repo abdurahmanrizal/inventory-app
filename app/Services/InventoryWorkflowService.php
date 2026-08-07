@@ -2,16 +2,17 @@
 
 namespace App\Services;
 
+use App\Enums\InventoryValuationMethod;
 use App\Models\CurrentStock;
 use App\Models\Delivery;
 use App\Models\GoodsReceipt;
 use App\Models\PurchaseOrder;
 use App\Models\StockAdjustment;
-use App\Models\StockLedger;
 use App\Models\StockOpname;
 use App\Models\StockReceipt;
 use App\Models\StockRequest;
 use App\Models\StockReservation;
+use App\Models\StockTransferLayerAllocation;
 use App\Models\User;
 use App\Models\WorkflowApproval;
 use App\Models\WorkflowApprovalStep;
@@ -22,6 +23,8 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryWorkflowService
 {
+    public function __construct(private readonly InventoryValuationService $valuation) {}
+
     public function requestApproval(string $module, Model $document, User $creator, array $approverIds): WorkflowApproval
     {
         $steps = collect($approverIds)->filter()->map(function (mixed $step, int $index) {
@@ -308,7 +311,18 @@ class InventoryWorkflowService
         DB::transaction(function () use ($delivery) {
             $request = $delivery->stockRequest()->firstOrFail();
             foreach ($delivery->details as $detail) {
-                $this->decrease($request->from_warehouse_id, $detail->item_id, (float) $detail->qty_delivered, $detail->batch_no, 'delivery', $delivery->id, $delivery->delivered_by);
+                $allocations = $this->decrease($request->from_warehouse_id, $detail->item_id, (float) $detail->qty_delivered, $detail->batch_no, 'delivery', $delivery->id, $delivery->delivered_by);
+                foreach ($allocations as $allocation) {
+                    StockTransferLayerAllocation::create([
+                        'delivery_detail_id' => $detail->id,
+                        'source_cost_layer_id' => $allocation['source_cost_layer_id'],
+                        'batch_no' => $allocation['batch_no'],
+                        'expired_at' => $allocation['expired_at'],
+                        'source_received_at' => $allocation['source_received_at'],
+                        'qty_allocated' => $allocation['qty'],
+                        'unit_cost' => $allocation['unit_cost'],
+                    ]);
+                }
                 $detail->requestDetail()->increment('qty_delivered', $detail->qty_delivered);
                 StockReservation::where('stock_request_detail_id', $detail->stock_request_detail_id)->where('status', 'active')->update(['status' => 'consumed']);
             }
@@ -323,18 +337,46 @@ class InventoryWorkflowService
             $delivery = $receipt->delivery()->with('stockRequest')->firstOrFail();
             foreach ($receipt->details as $detail) {
                 $source = $detail->deliveryDetail()->firstOrFail();
-                $outgoingLedger = StockLedger::query()
-                    ->where('reference_type', 'delivery')
-                    ->where('reference_id', $delivery->id)
-                    ->where('warehouse_id', $delivery->stockRequest->from_warehouse_id)
-                    ->where('item_id', $detail->item_id)
-                    ->when($detail->batch_no, fn ($query) => $query->where('batch_no', $detail->batch_no))
-                    ->where('direction', 'out')
-                    ->get(['qty', 'unit_cost']);
-                $totalIssuedQty = (float) $outgoingLedger->sum('qty');
-                abort_unless($totalIssuedQty > 0, 422, 'HPP stok gudang utama tidak ditemukan.');
-                $sourceCost = $outgoingLedger->sum(fn (StockLedger $ledger) => (float) $ledger->qty * (float) $ledger->unit_cost) / $totalIssuedQty;
-                $this->increase($delivery->stockRequest->to_warehouse_id, $detail->item_id, (float) $detail->qty_received, $sourceCost, $detail->batch_no, null, $detail->location_id, $detail->uom_id, 'receipt', $receipt->id, $receipt->received_by, true);
+                $allocations = StockTransferLayerAllocation::query()
+                    ->where('delivery_detail_id', $source->id)
+                    ->whereColumn('qty_received', '<', 'qty_allocated')
+                    ->orderBy('id')->lockForUpdate()->get();
+                abort_if($allocations->isEmpty(), 422, 'Alokasi biaya pengiriman tidak ditemukan.');
+                $remaining = (float) $detail->qty_received;
+                $available = $allocations->sum(fn (StockTransferLayerAllocation $allocation) => (float) $allocation->qty_allocated - (float) $allocation->qty_received);
+                abort_if($available + 0.000001 < $remaining, 422, 'Kuantitas penerimaan melebihi alokasi biaya pengiriman.');
+
+                if ($this->valuation->method() === InventoryValuationMethod::Fifo) {
+                    foreach ($allocations as $allocation) {
+                        if ($remaining <= 0) {
+                            break;
+                        }
+                        $availableQty = (float) $allocation->qty_allocated - (float) $allocation->qty_received;
+                        $take = min($remaining, $availableQty);
+                        $this->valuation->receive(
+                            $delivery->stockRequest->to_warehouse_id, $detail->item_id, $take, (float) $allocation->unit_cost,
+                            $allocation->batch_no, $allocation->expired_at, $detail->location_id, $detail->uom_id,
+                            'receipt', $receipt->id, $receipt->received_by, null, false,
+                            $allocation->source_received_at, $allocation->source_cost_layer_id,
+                        );
+                        $allocation->increment('qty_received', $take);
+                        $remaining -= $take;
+                    }
+                } else {
+                    $receivedQty = $remaining;
+                    $receivedValue = 0.0;
+                    foreach ($allocations as $allocation) {
+                        if ($remaining <= 0) {
+                            break;
+                        }
+                        $take = min($remaining, (float) $allocation->qty_allocated - (float) $allocation->qty_received);
+                        $receivedValue += $take * (float) $allocation->unit_cost;
+                        $allocation->increment('qty_received', $take);
+                        $remaining -= $take;
+                    }
+                    $sourceCost = $receivedValue / $receivedQty;
+                    $this->increase($delivery->stockRequest->to_warehouse_id, $detail->item_id, $receivedQty, $sourceCost, $detail->batch_no, null, $detail->location_id, $detail->uom_id, 'receipt', $receipt->id, $receipt->received_by, true);
+                }
                 $source->requestDetail()->increment('qty_received', $detail->qty_received);
             }
             $delivery->update(['status' => 'received']);
@@ -347,20 +389,36 @@ class InventoryWorkflowService
         if ($adjustment->posted_at) {
             return;
         }
+        if ($adjustment->valuation_method !== $this->valuation->method()) {
+            throw ValidationException::withMessages([
+                'valuation_method' => 'Metode valuasi dokumen berbeda dengan metode persediaan yang aktif.',
+            ]);
+        }
         foreach ($adjustment->details as $detail) {
             $qty = (float) $detail->qty_adjustment;
-            if ($qty >= 0) {
-                $cost = (float) CurrentStock::where('warehouse_id', $adjustment->warehouse_id)
-                    ->where('item_id', $detail->item_id)
-                    ->where('qty_on_hand', '>', 0)
-                    ->selectRaw('SUM(qty_on_hand * average_cost) / SUM(qty_on_hand) as weighted_cost')
-                    ->value('weighted_cost');
+            if (abs($qty) < 0.000001) {
+                continue;
+            }
+            if ($qty > 0) {
+                $cost = (float) $detail->unit_price;
+                if ($cost <= 0) {
+                    throw ValidationException::withMessages([
+                        'unit_price' => 'Biaya unit wajib lebih dari nol untuk penambahan stok.',
+                    ]);
+                }
                 $this->increase($adjustment->warehouse_id, $detail->item_id, $qty, $cost, $detail->batch_no, null, $detail->location_id, $detail->uom_id, 'adjustment', $adjustment->id, $adjustment->created_by);
             } else {
-                $this->decrease($adjustment->warehouse_id, $detail->item_id, abs($qty), $detail->batch_no, 'adjustment', $adjustment->id, $adjustment->created_by);
+                $allocations = $this->decrease($adjustment->warehouse_id, $detail->item_id, abs($qty), $detail->batch_no, 'adjustment', $adjustment->id, $adjustment->created_by);
+                $actualCost = collect($allocations)->sum(fn (array $allocation) => $allocation['qty'] * $allocation['unit_cost']) / abs($qty);
+                $detail->update(['unit_price' => $actualCost]);
             }
         }
         $adjustment->update(['status' => 'posted', 'posted_at' => now()]);
+    }
+
+    public function currentAdjustmentCost(int $warehouseId, int $itemId, ?string $batch = null): float
+    {
+        return $this->valuation->currentInboundCost($warehouseId, $itemId, $batch);
     }
 
     private function document(WorkflowApproval $approval): ?Model
@@ -377,40 +435,15 @@ class InventoryWorkflowService
 
     private function increase(int $warehouseId, int $itemId, float $qty, float $cost, ?string $batch, mixed $expired, ?int $locationId, ?int $uomId, string $reference, int $referenceId, int $userId, bool $followSourceCost = false): void
     {
-        $stock = CurrentStock::firstOrCreate(['warehouse_id' => $warehouseId, 'item_id' => $itemId, 'batch_no' => $batch], ['location_id' => $locationId, 'uom_id' => $uomId, 'expired_at' => $expired, 'qty_on_hand' => 0, 'qty_reserved' => 0, 'average_cost' => 0]);
-        $oldQty = (float) $stock->qty_on_hand;
-        $newQty = $oldQty + $qty;
-        $newCost = $followSourceCost
-            ? $cost
-            : ($newQty > 0 ? (($oldQty * (float) $stock->average_cost) + ($qty * $cost)) / $newQty : 0);
-        $stock->update(['qty_on_hand' => $newQty, 'average_cost' => $newCost, 'location_id' => $locationId ?? $stock->location_id, 'uom_id' => $uomId ?? $stock->uom_id]);
-        $this->ledger($stock, 'in', $qty, $cost, $reference, $referenceId, $userId);
+        $this->valuation->receive(
+            $warehouseId, $itemId, $qty, $cost, $batch, $expired,
+            $locationId, $uomId, $reference, $referenceId, $userId,
+            null, $followSourceCost,
+        );
     }
 
-    private function decrease(int $warehouseId, int $itemId, float $qty, ?string $batch, string $reference, int $referenceId, int $userId): void
+    private function decrease(int $warehouseId, int $itemId, float $qty, ?string $batch, string $reference, int $referenceId, int $userId): array
     {
-        $stocks = CurrentStock::where('warehouse_id', $warehouseId)->where('item_id', $itemId)->when($batch, fn ($q) => $q->where('batch_no', $batch))->where('qty_on_hand', '>', 0)->orderByRaw('expired_at IS NULL, expired_at')->orderBy('created_at')->lockForUpdate()->get();
-        $remaining = $qty;
-        foreach ($stocks as $stock) {
-            if ($remaining <= 0) {
-                break;
-            }
-            $take = min($remaining, (float) $stock->qty_on_hand);
-            $stock->decrement('qty_on_hand', $take);
-            if ((float) $stock->qty_reserved > 0) {
-                $stock->decrement('qty_reserved', min($take, (float) $stock->qty_reserved));
-            }
-            $stock->refresh();
-            $this->ledger($stock, 'out', $take, (float) $stock->average_cost, $reference, $referenceId, $userId);
-            $remaining -= $take;
-        }
-        if ($remaining > 0) {
-            throw ValidationException::withMessages(['stock' => 'Stok tersedia tidak mencukupi.']);
-        }
-    }
-
-    private function ledger(CurrentStock $stock, string $direction, float $qty, float $cost, string $reference, int $referenceId, int $userId): void
-    {
-        StockLedger::create(['reference_type' => $reference, 'reference_id' => $referenceId, 'warehouse_id' => $stock->warehouse_id, 'location_id' => $stock->location_id, 'item_id' => $stock->item_id, 'uom_id' => $stock->uom_id, 'batch_no' => $stock->batch_no, 'expired_at' => $stock->expired_at, 'direction' => $direction, 'qty' => $qty, 'unit_cost' => $cost, 'balance_qty' => $stock->qty_on_hand, 'balance_cost' => $stock->average_cost, 'created_by' => $userId, 'created_at' => now()]);
+        return $this->valuation->issue($warehouseId, $itemId, $qty, $batch, $reference, $referenceId, $userId);
     }
 }

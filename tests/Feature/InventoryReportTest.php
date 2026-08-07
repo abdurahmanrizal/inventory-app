@@ -2,10 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\InventoryValuationMethod;
+use App\Enums\TransactionStatus;
+use App\Enums\TransactionType;
 use App\Enums\UserRole;
 use App\Models\CurrentStock;
+use App\Models\InventorySetting;
 use App\Models\Item;
+use App\Models\StockCostLayer;
 use App\Models\StockLedger;
+use App\Models\StockTransaction;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,13 +97,52 @@ class InventoryReportTest extends TestCase
     {
         $admin = User::factory()->create();
 
-        foreach (['ledger', 'slow-moving', 'opname', 'valuation', 'cost-history'] as $report) {
+        foreach (['ledger', 'slow-moving', 'opname', 'valuation', 'cost-history', 'financial-movement', 'issue-cost', 'valuation-audit', 'anomalies', 'purchase-history'] as $report) {
             $this->actingAs($admin)->get('/reports?report='.$report)
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page
                     ->component('Reports/Index')
                     ->where('report', $report));
         }
+    }
+
+    public function test_purchase_history_only_uses_approved_and_posted_supplier_stock_in(): void
+    {
+        $warehouse = Warehouse::create(['code' => 'REP-BUY', 'name' => 'Gudang Pembelian', 'type' => 'main']);
+        $item = Item::create(['code' => 'BUY-ITEM', 'name' => 'Item Pembelian', 'base_uom' => 'PCS']);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin]);
+        $manager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $warehouse->id]);
+        InventorySetting::current()->update(['valuation_method' => InventoryValuationMethod::Fifo]);
+        $transaction = StockTransaction::create([
+            'number' => 'IN-BUY-001', 'type' => TransactionType::StockIn, 'request_kind' => 'supplier_receipt',
+            'destination_warehouse_id' => $warehouse->id, 'supplier_name' => 'Supplier Pembelian',
+            'document_date' => now(), 'status' => TransactionStatus::Completed, 'created_by' => $admin->id,
+            'approved_by' => $manager->id, 'approved_at' => now(), 'posted_at' => now(),
+        ]);
+        $transaction->details()->create(['item_id' => $item->id, 'qty' => 6, 'unit_cost' => 110, 'batch_no' => 'BUY-BATCH']);
+        $waiting = StockTransaction::create([
+            'number' => 'IN-WAITING', 'type' => TransactionType::StockIn, 'request_kind' => 'supplier_receipt',
+            'destination_warehouse_id' => $warehouse->id, 'supplier_name' => 'Supplier Belum Disetujui',
+            'document_date' => now(), 'status' => TransactionStatus::WaitingApproval, 'created_by' => $admin->id,
+        ]);
+        $waiting->details()->create(['item_id' => $item->id, 'qty' => 99, 'unit_cost' => 999]);
+        $layer = StockCostLayer::create([
+            'warehouse_id' => $warehouse->id, 'item_id' => $item->id, 'batch_no' => 'BUY-BATCH',
+            'received_at' => now(), 'original_qty' => 6, 'remaining_qty' => 6, 'unit_cost' => 110,
+            'reference_type' => 'stock_transaction', 'reference_id' => $transaction->id,
+        ]);
+
+        $this->actingAs($admin)->get('/reports?report=purchase-history&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.summary.transactions', 1)
+            ->where('data.summary.qty', 6)
+            ->where('data.summary.totalValue', 660)
+            ->has('data.rows', 1)
+            ->where('data.rows.0.fifo_layer_ids.0', $layer->id)
+            ->where('data.rows.0.transaction_number', 'IN-BUY-001')
+            ->where('data.rows.0.approved_by_name', $manager->name));
+
+        $this->actingAs($admin)->get('/reports/export/xlsx?report=purchase-history&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))->assertOk();
     }
 
     public function test_cost_history_calculates_cost_before_and_after(): void

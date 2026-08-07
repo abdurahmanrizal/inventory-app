@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 const InventoryReportController = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ InventoryReportController.definition = {
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 InventoryReportController.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ InventoryReportController.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 InventoryReportController.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ InventoryReportController.get = (options?: RouteQueryOptions): RouteDefinition<'
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 InventoryReportController.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ InventoryReportController.head = (options?: RouteQueryOptions): RouteDefinition<
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 const InventoryReportControllerForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const InventoryReportControllerForm = (options?: RouteQueryOptions): RouteFormDe
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 InventoryReportControllerForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ InventoryReportControllerForm.get = (options?: RouteQueryOptions): RouteFormDefi
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::__invoke
-* @see app/Http/Controllers/InventoryReportController.php:17
+* @see app/Http/Controllers/InventoryReportController.php:18
 * @route '/reports'
 */
 InventoryReportControllerForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ InventoryReportController.form = InventoryReportControllerForm
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 export const exportMethod = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -97,7 +97,7 @@ exportMethod.definition = {
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 exportMethod.url = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -124,7 +124,7 @@ exportMethod.url = (args: { format: string | number } | [format: string | number
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 exportMethod.get = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -134,7 +134,7 @@ exportMethod.get = (args: { format: string | number } | [format: string | number
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 exportMethod.head = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -144,7 +144,7 @@ exportMethod.head = (args: { format: string | number } | [format: string | numbe
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 const exportMethodForm = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -154,7 +154,7 @@ const exportMethodForm = (args: { format: string | number } | [format: string | 
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 exportMethodForm.get = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -164,7 +164,7 @@ exportMethodForm.get = (args: { format: string | number } | [format: string | nu
 
 /**
 * @see \App\Http\Controllers\InventoryReportController::exportMethod
-* @see app/Http/Controllers/InventoryReportController.php:32
+* @see app/Http/Controllers/InventoryReportController.php:34
 * @route '/reports/export/{format}'
 */
 exportMethodForm.head = (args: { format: string | number } | [format: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

@@ -1,6 +1,7 @@
 import { Head, router } from "@inertiajs/react";
 import {
   ArchiveX,
+  AlertTriangle,
   ArrowDownToLine,
   ArrowUpFromLine,
   Banknote,
@@ -12,6 +13,8 @@ import {
   Download,
   Filter,
   PackageSearch,
+  Layers3,
+  ReceiptText,
   Scale,
   ShieldCheck,
   TrendingUp,
@@ -41,6 +44,12 @@ const reports = [
     icon: BookOpenText,
   },
   {
+    id: "purchase-history",
+    label: "Pembelian Persediaan",
+    hint: "PO, penerimaan, dan layer biaya",
+    icon: ReceiptText,
+  },
+  {
     id: "slow-moving",
     label: "Slow & Dead Stock",
     hint: "Stok tidak bergerak",
@@ -63,6 +72,30 @@ const reports = [
     label: "Riwayat HPP",
     hint: "Perubahan biaya per item",
     icon: TrendingUp,
+  },
+  {
+    id: "financial-movement",
+    label: "Mutasi Nilai",
+    hint: "Rekonsiliasi nilai stok",
+    icon: Scale,
+  },
+  {
+    id: "issue-cost",
+    label: "Biaya Pengeluaran",
+    hint: "HPP dan draft jurnal",
+    icon: ReceiptText,
+  },
+  {
+    id: "valuation-audit",
+    label: "Audit Valuasi",
+    hint: "Layer atau average cost",
+    icon: Layers3,
+  },
+  {
+    id: "anomalies",
+    label: "Anomali",
+    hint: "Kontrol integritas stok",
+    icon: AlertTriangle,
   },
 ];
 
@@ -113,6 +146,7 @@ export default function Index({
   items,
   canFilterWarehouse,
   accessLabel,
+  valuationMethod,
 }: any) {
   const [form, setForm] = useState({ ...filters, report });
   const filteredItems = useMemo(() => {
@@ -164,6 +198,10 @@ export default function Index({
                 <ShieldCheck size={14} />
                 {accessLabel}
               </span>
+              <span className="ml-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-3 py-1.5 text-xs text-slate-300">
+                <Layers3 size={14} />
+                {valuationMethod === "fifo" ? "FIFO" : "Moving Average"}
+              </span>
               <h2 className="mt-3 text-2xl font-semibold">
                 Pusat laporan persediaan
               </h2>
@@ -176,10 +214,16 @@ export default function Index({
               <CalendarDays size={20} className="text-emerald-300" />
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                  Periode aktif
+                  {["valuation", "anomalies"].includes(report) ||
+                  (report === "valuation-audit" && valuationMethod === "fifo")
+                    ? "Posisi laporan"
+                    : "Periode aktif"}
                 </p>
                 <p className="text-sm font-medium">
-                  {filters.date_from} s/d {filters.date_to}
+                  {["valuation", "anomalies"].includes(report) ||
+                  (report === "valuation-audit" && valuationMethod === "fifo")
+                    ? "Saat ini"
+                    : `${filters.date_from} s/d ${filters.date_to}`}
                 </p>
               </div>
             </div>
@@ -201,10 +245,14 @@ export default function Index({
               </span>
               <span className="min-w-0">
                 <b className="block truncate text-sm text-slate-900">
-                  {item.label}
+                  {item.id === "cost-history" && valuationMethod === "fifo"
+                    ? "Riwayat HPP FIFO"
+                    : item.label}
                 </b>
                 <small className="mt-0.5 block truncate text-slate-500">
-                  {item.hint}
+                  {item.id === "cost-history" && valuationMethod === "fifo"
+                    ? "Konsumsi layer biaya"
+                    : item.hint}
                 </small>
               </span>
             </button>
@@ -225,21 +273,19 @@ export default function Index({
             {canFilterWarehouse && (
               <label className="text-xs font-semibold text-slate-600">
                 Gudang
-                <select
-                  value={form.warehouse_id || ""}
-                  onChange={(e) => updateWarehouse(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-emerald-400"
-                >
-                  <option value="">Semua gudang</option>
-                  {warehouses.map((row: any) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2">
+                  <SearchableItemSelect
+                    value={form.warehouse_id || ""}
+                    items={warehouses}
+                    onChange={updateWarehouse}
+                    placeholder="Cari kode atau nama gudang"
+                    emptyOptionLabel="Semua gudang"
+                    entityLabel="gudang"
+                  />
+                </div>
               </label>
             )}
-            {(report === "ledger" || report === "cost-history") && (
+            {(["ledger", "cost-history", "financial-movement", "issue-cost", "valuation-audit", "purchase-history"].includes(report)) && (
               <>
                 <label className="text-xs font-semibold text-slate-600">
                   Item
@@ -268,6 +314,18 @@ export default function Index({
                 </label>
               </>
             )}
+            {report === "purchase-history" && (
+              <>
+                <label className="text-xs font-semibold text-slate-600">
+                  Supplier
+                  <input value={form.supplier_name || ""} onChange={(e) => update("supplier_name", e.target.value)} placeholder="Cari nama supplier" className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal outline-none focus:border-emerald-400" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Nomor / item
+                  <input value={form.search || ""} onChange={(e) => update("search", e.target.value)} placeholder="Stock In, supplier, kode atau item" className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal outline-none focus:border-emerald-400" />
+                </label>
+              </>
+            )}
             {report === "slow-moving" ? (
               <label className="text-xs font-semibold text-slate-600">
                 Tidak bergerak selama
@@ -284,7 +342,8 @@ export default function Index({
                 </select>
               </label>
             ) : (
-              report !== "valuation" && (
+              !["valuation", "anomalies"].includes(report) &&
+              !(report === "valuation-audit" && valuationMethod === "fifo") && (
                 <>
                   <label className="text-xs font-semibold text-slate-600">
                     Dari tanggal
@@ -329,15 +388,51 @@ export default function Index({
 
         <div className="mt-6">
           {report === "ledger" && <Ledger data={data} />}
+          {report === "purchase-history" && <PurchaseHistory data={data} />}
           {report === "slow-moving" && (
             <SlowMoving data={data} days={filters.days} />
           )}
           {report === "opname" && <Opname data={data} />}
           {report === "valuation" && <Valuation data={data} />}
           {report === "cost-history" && <CostHistory data={data} />}
+          {report === "financial-movement" && <FinancialMovement data={data} />}
+          {report === "issue-cost" && <IssueCost data={data} />}
+          {report === "valuation-audit" && <ValuationAudit data={data} />}
+          {report === "anomalies" && <Anomalies data={data} />}
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+function PurchaseHistory({ data }: any) {
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Nilai pembelian diposting" value={money(data.summary.totalValue)} icon={ReceiptText} tone="blue" />
+        <SummaryCard label="Kuantitas diterima" value={number(data.summary.qty)} icon={ArrowDownToLine} />
+        <SummaryCard label="Transaksi Stock In" value={number(data.summary.transactions)} icon={ClipboardCheck} tone="amber" />
+        <SummaryCard label="Supplier" value={number(data.summary.suppliers)} icon={Boxes} />
+      </section>
+      <ReportTable
+        title="Laporan pembelian persediaan"
+        note={data.limited ? "Menampilkan maksimal 1.000 detail." : `${data.rows.length} detail PO dan penerimaan ditemukan.`}
+        headers={["Stock In / tanggal", "Supplier / gudang", "Item / batch", "Kuantitas", "Biaya / nilai", "Approval manajer", "Waktu posting", "Layer FIFO"]}
+      >
+        {data.rows.length ? data.rows.map((row: any, index: number) => (
+          <tr key={`${row.detail_id}-${index}`} className="hover:bg-slate-50/70">
+            <Cell><b>{row.transaction_number}</b><small>{row.document_date}</small></Cell>
+            <Cell><b>{row.supplier_name}</b><small>{row.warehouse_name}</small></Cell>
+            <Cell><b>{row.item_name}</b><small>{row.item_code} · {row.batch_no || "Tanpa batch"}</small></Cell>
+            <Cell strong>{number(row.qty)} {row.base_uom}</Cell>
+            <Cell strong><span>{money(row.unit_cost)} / unit</span><small>{money(row.total_value)}</small></Cell>
+            <Cell><b>{row.approved_by_name}</b><small>{row.approved_at}</small></Cell>
+            <Cell><b>{row.posted_at}</b><small>Dibuat oleh {row.created_by_name}</small></Cell>
+            <Cell>{row.valuation_method === "fifo" ? (row.fifo_layer_ids.length ? row.fifo_layer_ids.map((id: number) => `#${id}`).join(", ") : "Belum terbentuk") : "Tidak berlaku (Moving Average)"}</Cell>
+          </tr>
+        )) : <EmptyRow colSpan={8} />}
+      </ReportTable>
+    </>
   );
 }
 
@@ -537,6 +632,7 @@ function Opname({ data }: any) {
           "Sistem",
           "Fisik",
           "Selisih",
+          "Metode / biaya",
           "Nilai selisih",
           "Dilakukan oleh",
         ]}
@@ -572,12 +668,16 @@ function Opname({ data }: any) {
               >
                 {number(row.diff_qty)}
               </Cell>
+              <Cell>
+                <b>{row.valuation_method === "fifo" ? "FIFO" : "Moving Average"}</b>
+                <small>{money(row.valuation_cost)} / unit</small>
+              </Cell>
               <Cell strong>{money(row.difference_value)}</Cell>
               <Cell>{row.creator_name}</Cell>
             </tr>
           ))
         ) : (
-          <EmptyRow colSpan={8} />
+          <EmptyRow colSpan={9} />
         )}
       </ReportTable>
     </>
@@ -654,6 +754,8 @@ function Valuation({ data }: any) {
 }
 
 function CostHistory({ data }: any) {
+  if (data.method === "fifo") return <FifoCostHistory data={data} />;
+
   return (
     <>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -749,6 +851,186 @@ function CostHistory({ data }: any) {
         ) : (
           <EmptyRow colSpan={10} />
         )}
+      </ReportTable>
+    </>
+  );
+}
+
+function FifoCostHistory({ data }: any) {
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Dokumen keluar" value={number(data.summary.issues)} icon={ReceiptText} tone="blue" />
+        <SummaryCard label="Alokasi layer" value={number(data.summary.allocations)} icon={Layers3} />
+        <SummaryCard label="Qty dikonsumsi" value={number(data.summary.qty)} icon={Boxes} tone="amber" />
+        <SummaryCard label="Total biaya FIFO" value={money(data.summary.totalCost)} icon={Banknote} tone="rose" />
+      </section>
+      <ReportTable
+        title="Riwayat konsumsi layer FIFO"
+        note={data.limited ? "Menampilkan maksimal 1.000 alokasi layer pertama." : "Setiap baris menunjukkan layer biaya yang dikonsumsi oleh transaksi keluar."}
+        headers={["Tanggal keluar", "Gudang", "Item / batch", "Referensi keluar", "Layer sumber", "Qty awal layer", "Qty dipakai", "Sisa layer", "Biaya unit", "Total biaya", "Petugas"]}
+      >
+        {data.rows.length ? data.rows.map((row: any) => (
+          <tr key={row.id} className="hover:bg-slate-50/70">
+            <Cell>{row.date}</Cell>
+            <Cell><b>{row.warehouse.name}</b><small>{row.warehouse.code}</small></Cell>
+            <Cell><b>{row.item.name}</b><small>{row.item.code} · {row.batch_no || "Tanpa batch"}</small></Cell>
+            <Cell>{row.issue_reference}</Cell>
+            <Cell>
+              <b>{row.layer_id ? `Layer #${row.layer_id}` : "Layer lama"}</b>
+              <small>{row.layer_received_at || "Tanggal tidak tersedia"} · {row.layer_reference}</small>
+            </Cell>
+            <Cell>{number(row.layer_original_qty)}</Cell>
+            <Cell strong>{number(row.consumed_qty)}</Cell>
+            <Cell>{row.layer_balance_qty === null ? "-" : number(row.layer_balance_qty)}</Cell>
+            <Cell>{money(row.unit_cost)}</Cell>
+            <Cell strong>{money(row.total_cost)}</Cell>
+            <Cell>{row.creator || "-"}</Cell>
+          </tr>
+        )) : <EmptyRow colSpan={11} />}
+      </ReportTable>
+    </>
+  );
+}
+
+function FinancialMovement({ data }: any) {
+  const difference = data.summary.difference;
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <SummaryCard label="Nilai awal" value={money(data.summary.openingValue)} icon={Banknote} tone="blue" />
+        <SummaryCard label="Nilai masuk" value={money(data.summary.incomingValue)} icon={ArrowDownToLine} />
+        <SummaryCard label="Nilai keluar" value={money(data.summary.outgoingValue)} icon={ArrowUpFromLine} tone="rose" />
+        <SummaryCard label="Nilai akhir ledger" value={money(data.summary.closingValue)} icon={Scale} tone="amber" />
+        <SummaryCard
+          label="Selisih rekonsiliasi"
+          value={difference === null ? "Hanya posisi hari ini" : money(difference)}
+          icon={difference !== null && Math.abs(difference) >= 1 ? AlertTriangle : ShieldCheck}
+          tone={difference !== null && Math.abs(difference) >= 1 ? "rose" : "emerald"}
+        />
+      </section>
+      <ReportTable
+        title="Mutasi nilai persediaan"
+        note={`Metode ${data.valuation_method === "fifo" ? "FIFO" : "Moving Average"}. Nilai akhir = nilai awal + masuk - keluar berdasarkan waktu posting ledger.`}
+        headers={["Gudang", "Item", "Qty masuk", "Nilai masuk", "Qty keluar", "Nilai keluar", "Perubahan bersih"]}
+      >
+        {data.rows.length ? data.rows.map((row: any) => (
+          <tr key={row.id} className="hover:bg-slate-50/70">
+            <Cell><b>{row.warehouse.name}</b><small>{row.warehouse.code}</small></Cell>
+            <Cell><b>{row.item.name}</b><small>{row.item.code} · {row.item.base_uom}</small></Cell>
+            <Cell strong>{number(row.qty_in)}</Cell>
+            <Cell>{money(row.value_in)}</Cell>
+            <Cell strong>{number(row.qty_out)}</Cell>
+            <Cell>{money(row.value_out)}</Cell>
+            <Cell strong tone={row.net_value < 0 ? "rose" : "emerald"}>{money(row.net_value)}</Cell>
+          </tr>
+        )) : <EmptyRow colSpan={7} />}
+      </ReportTable>
+    </>
+  );
+}
+
+function IssueCost({ data }: any) {
+  const classificationLabel: Record<string, string> = {
+    internal_transfer: "Transfer internal",
+    adjustment: "Adjustment",
+    expense: "HPP / pemakaian",
+  };
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Dokumen" value={number(data.summary.transactions)} icon={ReceiptText} tone="blue" />
+        <SummaryCard label="Total biaya keluar" value={money(data.summary.totalCost)} icon={Banknote} />
+        <SummaryCard label="Transfer internal" value={money(data.summary.internalCost)} icon={Warehouse} tone="amber" />
+        <SummaryCard label="Potensi HPP / beban" value={money(data.summary.expenseCost)} icon={ArrowUpFromLine} tone="rose" />
+      </section>
+      <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm text-blue-800">
+        Draft jurnal adalah usulan klasifikasi. Transfer internal tidak dibebankan ke HPP; akun final tetap harus dipetakan oleh finance.
+      </div>
+      <ReportTable
+        title="Biaya pengeluaran dan draft jurnal"
+        note={data.limited ? "Menampilkan maksimal 1.000 baris." : `${data.rows.length} alokasi biaya ditemukan.`}
+        headers={["Tanggal", "Gudang", "Referensi", "Item / batch", "Qty", "Biaya unit", "Total", "Klasifikasi", "Draft jurnal"]}
+      >
+        {data.rows.length ? data.rows.map((row: any) => (
+          <tr key={row.id} className="hover:bg-slate-50/70">
+            <Cell>{row.date}</Cell>
+            <Cell>{row.warehouse.name}</Cell>
+            <Cell>{row.reference}</Cell>
+            <Cell><b>{row.item.name}</b><small>{row.item.code} · {row.batch_no || "Tanpa batch"}</small></Cell>
+            <Cell strong>{number(row.qty)}</Cell>
+            <Cell>{money(row.unit_cost)}</Cell>
+            <Cell strong>{money(row.total_cost)}</Cell>
+            <Cell><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{classificationLabel[row.classification]}</span></Cell>
+            <Cell><b>Db {row.journal_debit}</b><small>Cr {row.journal_credit}</small></Cell>
+          </tr>
+        )) : <EmptyRow colSpan={9} />}
+      </ReportTable>
+    </>
+  );
+}
+
+function ValuationAudit({ data }: any) {
+  if (data.method !== "fifo") return <CostHistory data={data} />;
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Layer aktif" value={number(data.summary.layers)} icon={Layers3} tone="blue" />
+        <SummaryCard label="Qty tersisa" value={number(data.summary.qty)} icon={Boxes} />
+        <SummaryCard label="Nilai layer" value={money(data.summary.value)} icon={Banknote} tone="amber" />
+        <SummaryCard label="Layer > 90 hari" value={number(data.summary.oldLayers)} icon={ArchiveX} tone="rose" />
+      </section>
+      <ReportTable
+        title="Audit layer FIFO tersisa"
+        note="Urutan layer mengikuti tanggal penerimaan paling lama. Nilai layer adalah qty tersisa × biaya unit."
+        headers={["Tanggal masuk", "Gudang", "Item / batch", "Referensi", "Qty awal", "Qty tersisa", "Biaya unit", "Nilai tersisa", "Umur"]}
+      >
+        {data.rows.length ? data.rows.map((row: any) => (
+          <tr key={row.id} className="hover:bg-slate-50/70">
+            <Cell>{row.date}</Cell>
+            <Cell>{row.warehouse.name}</Cell>
+            <Cell><b>{row.item.name}</b><small>{row.item.code} · {row.batch_no || "Tanpa batch"}</small></Cell>
+            <Cell>{row.reference}</Cell>
+            <Cell>{number(row.original_qty)}</Cell>
+            <Cell strong>{number(row.remaining_qty)}</Cell>
+            <Cell>{money(row.unit_cost)}</Cell>
+            <Cell strong>{money(row.remaining_value)}</Cell>
+            <Cell>{number(row.age_days)} hari</Cell>
+          </tr>
+        )) : <EmptyRow colSpan={9} />}
+      </ReportTable>
+    </>
+  );
+}
+
+function Anomalies({ data }: any) {
+  const labels: Record<string, string> = {
+    negative_stock: "Stok negatif",
+    zero_cost_stock: "Biaya nol",
+    fifo_mismatch: "Selisih layer FIFO",
+    zero_cost_movement: "Mutasi biaya nol",
+  };
+  return (
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Total anomali" value={number(data.summary.issues)} icon={AlertTriangle} tone={data.summary.issues ? "rose" : "emerald"} />
+        <SummaryCard label="Prioritas tinggi" value={number(data.summary.high)} icon={ShieldCheck} tone={data.summary.high ? "rose" : "emerald"} />
+      </section>
+      <ReportTable
+        title="Kontrol integritas persediaan"
+        note={data.summary.issues ? "Anomali harus ditinjau sebelum periode ditutup." : "Tidak ditemukan anomali pada saldo persediaan saat ini."}
+        headers={["Jenis", "Gudang", "Item / batch", "Qty", "Nilai", "Keterangan"]}
+      >
+        {data.rows.length ? data.rows.map((row: any) => (
+          <tr key={row.id} className="hover:bg-rose-50/30">
+            <Cell><span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">{labels[row.type] || row.type}</span></Cell>
+            <Cell>{row.warehouse?.name || "-"}</Cell>
+            <Cell><b>{row.item?.name || "-"}</b><small>{row.item?.code || "-"} · {row.batch_no || "Tanpa batch"}</small></Cell>
+            <Cell strong>{number(row.qty)}</Cell>
+            <Cell>{money(row.value)}</Cell>
+            <Cell>{row.message}</Cell>
+          </tr>
+        )) : <EmptyRow colSpan={6} />}
       </ReportTable>
     </>
   );

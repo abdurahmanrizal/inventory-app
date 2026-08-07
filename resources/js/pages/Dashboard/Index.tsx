@@ -64,7 +64,7 @@ const referenceLabel: Record<string, string> = {
   stock_request: "Request Stok Unit",
 };
 
-export default function Index({ stats, recent, scopeLabel, quickActions }) {
+export default function Index({ stats, recent, scopeLabel, quickActions, financeSummary }) {
   const today = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -86,11 +86,14 @@ export default function Index({ stats, recent, scopeLabel, quickActions }) {
               {scopeLabel}
             </div>
             <h2 className="max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl">
-              Pantau pergerakan stok dengan lebih cepat.
+              {financeSummary
+                ? "Pantau nilai dan rekonsiliasi persediaan."
+                : "Pantau pergerakan stok dengan lebih cepat."}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
-              Ringkasan hanya menampilkan persediaan dan transaksi yang
-              berkaitan dengan cakupan akun Anda.
+              {financeSummary
+                ? "Ringkasan keuangan persediaan seluruh gudang berdasarkan metode valuasi aktif."
+                : "Ringkasan hanya menampilkan persediaan dan transaksi yang berkaitan dengan cakupan akun Anda."}
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -152,11 +155,37 @@ export default function Index({ stats, recent, scopeLabel, quickActions }) {
         </div>
       </section>
 
+      {financeSummary ? (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <StatCard label="Total Nilai Persediaan" value={money(financeSummary.inventoryValue)} helper={`Metode ${financeSummary.valuationMethod === "fifo" ? "FIFO" : "Moving Average"}`} icon={Banknote} tone="emerald" />
+            <StatCard label="Biaya Pengeluaran" value={money(financeSummary.outgoingCost)} helper={`Periode ${financeSummary.periodLabel}`} icon={PackageMinus} tone="blue" />
+            <StatCard label="Selisih Rekonsiliasi" value={money(financeSummary.reconciliationDifference)} helper="Nilai operasional dibanding ledger" icon={ClipboardCheck} tone="amber" />
+            <StatCard label="Anomali Persediaan" value={financeSummary.anomalyCount} helper="Perlu ditinjau oleh tim terkait" icon={TriangleAlert} tone="rose" />
+            <StatCard label="Metode Valuasi Aktif" value={financeSummary.valuationMethod === "fifo" ? "FIFO" : "Moving Average"} helper="Berlaku untuk satu company" icon={Boxes} tone="emerald" />
+          </section>
+          <section className="mt-6 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <div className="mb-4">
+              <h2 className="font-semibold text-slate-950">Nilai persediaan per gudang</h2>
+              <p className="mt-1 text-sm text-slate-500">Ringkasan seluruh gudang dan unit.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {financeSummary.warehouseValues.map((warehouse) => (
+                <div key={warehouse.name} className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-sm font-semibold text-slate-800">{warehouse.name}</p>
+                  <p className="mt-2 text-lg font-semibold text-emerald-700">{money(warehouse.value)}</p>
+                  <p className="mt-1 text-xs text-slate-500">{Number(warehouse.qty).toLocaleString("id-ID")} unit stok</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      ) : (
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Nilai Persediaan"
           value={money(stats.stockValue)}
-          helper="Berdasarkan moving average HPP"
+          helper="Berdasarkan metode valuasi aktif"
           icon={Banknote}
           tone="emerald"
         />
@@ -182,6 +211,7 @@ export default function Index({ stats, recent, scopeLabel, quickActions }) {
           tone="rose"
         />
       </section>
+      )}
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
         <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -195,7 +225,9 @@ export default function Index({ stats, recent, scopeLabel, quickActions }) {
           </div>
           <Link
             href={
-              quickActions.stockRequest
+              financeSummary
+                ? "/transaction-activities"
+                : quickActions.stockRequest
                 ? "/operations/fulfillment"
                 : "/stock-transactions"
             }

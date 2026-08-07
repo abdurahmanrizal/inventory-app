@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\InventoryValuationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -13,6 +14,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('settings/inventory-valuation', [InventoryValuationController::class, 'edit'])->name('inventory-valuation.edit');
+    Route::put('settings/inventory-valuation', [InventoryValuationController::class, 'update'])->name('inventory-valuation.update');
+
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DeliveryDetail extends Model
 {
@@ -24,5 +25,10 @@ class DeliveryDetail extends Model
     public function uom(): BelongsTo
     {
         return $this->belongsTo(Uom::class);
+    }
+
+    public function layerAllocations(): HasMany
+    {
+        return $this->hasMany(StockTransferLayerAllocation::class);
     }
 }

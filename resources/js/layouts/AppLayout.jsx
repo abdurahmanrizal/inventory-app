@@ -20,6 +20,7 @@ import {
   ChartNoAxesCombined,
   UsersRound,
   KeyRound,
+  Settings,
   Wifi,
   WifiOff,
   X,
@@ -132,6 +133,12 @@ const links = [
     History,
     (url) => url.startsWith("/transaction-activities"),
   ],
+  [
+    "Pengaturan Valuasi",
+    "/settings/inventory-valuation",
+    Settings,
+    (url) => url.startsWith("/settings/inventory-valuation"),
+  ],
 ];
 
 export default function AppLayout({ children, title, fullWidth = false }) {
@@ -218,6 +225,8 @@ export default function AppLayout({ children, title, fullWidth = false }) {
                   ? role === "superadmin" && hasPermission("master.manage")
                   : label === "Manajemen User"
                     ? role === "superadmin"
+                    : label === "Pengaturan Valuasi"
+                      ? role === "superadmin"
                     : label === "Manajemen Akses"
                       ? role === "superadmin"
                       : label === "Stock In"
@@ -230,7 +239,8 @@ export default function AppLayout({ children, title, fullWidth = false }) {
                             : label === "Approval"
                               ? canApprove && hasPermission("approval.act")
                               : label === "Riwayat Aktivitas"
-                                ? canApprove && hasPermission("activity.view")
+                              ? (canApprove || role === "finance") &&
+                                hasPermission("activity.view")
                                 : label === "Laporan Persediaan"
                                   ? hasPermission("report.view")
                                   : label === "Stok Gudang"

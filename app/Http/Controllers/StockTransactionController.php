@@ -72,6 +72,10 @@ class StockTransactionController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(
+            $request->user()->hasPermission('stock.in') || $request->user()->hasPermission('stock.out'),
+            403,
+        );
         $data = $request->validate([
             'type' => ['required', Rule::enum(TransactionType::class)],
             'request_kind' => ['nullable', Rule::in(['supplier_receipt', 'unit_request'])],
