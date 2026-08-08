@@ -19,13 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import SearchableItemSelect from "../../components/searchable-item-select";
 import AppLayout from "../../layouts/AppLayout";
 
@@ -122,7 +115,7 @@ export default function Index({
     <AppLayout title="Stok Gudang">
       <Head title="Stok Gudang" />
 
-      <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#10233f] px-6 py-7 text-white shadow-xl shadow-slate-200 sm:px-8">
+      <section className="relative z-20 mb-6 rounded-3xl bg-[#10233f] px-6 py-7 text-white shadow-xl shadow-slate-200 sm:px-8">
         <div className="absolute -right-16 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
@@ -144,36 +137,25 @@ export default function Index({
           </div>
 
           {canFilterWarehouse && (
-            <div className="text-xs font-semibold text-slate-300">
-              <span className="mb-2 block">Filter gudang</span>
-              <Select
-                value={selectedWarehouse ? String(selectedWarehouse) : "all"}
-                onValueChange={(value) =>
+            <div className="w-full rounded-2xl border border-white/10 bg-white/[.06] p-3 backdrop-blur-sm lg:w-80">
+              <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[.12em] text-slate-300">Cakupan gudang</span>
+                <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">{warehouses.length} lokasi</span>
+              </div>
+              <SearchableItemSelect
+                value={selectedWarehouse ? String(selectedWarehouse) : ""}
+                items={warehouses}
+                onChange={(value) =>
                   router.get(
                     "/warehouse-stocks",
-                    value !== "all" ? { warehouse_id: value } : {},
+                    value ? { warehouse_id: value } : {},
                     { preserveState: true, replace: true },
                   )
                 }
-              >
-                <SelectTrigger className="h-11 min-w-64 rounded-xl border-white/10 bg-white/10 px-3.5 text-sm text-white shadow-none hover:bg-white/15 focus-visible:border-emerald-400 focus-visible:ring-emerald-400/10 [&_svg]:text-slate-300">
-                  <SelectValue placeholder="Pilih gudang" />
-                </SelectTrigger>
-                <SelectContent align="end" className="rounded-xl bg-white p-1">
-                  <SelectItem value="all" className="rounded-lg py-2.5">
-                    Semua gudang dalam cakupan
-                  </SelectItem>
-                  {warehouses.map((warehouse: any) => (
-                    <SelectItem
-                      key={warehouse.id}
-                      value={String(warehouse.id)}
-                      className="rounded-lg py-2.5"
-                    >
-                      {warehouse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Cari gudang atau unit"
+                emptyOptionLabel="Semua gudang dalam cakupan"
+                entityLabel="gudang"
+              />
             </div>
           )}
         </div>

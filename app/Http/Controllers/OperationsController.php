@@ -20,6 +20,7 @@ use App\Models\Warehouse;
 use App\Models\WorkflowApproval;
 use App\Services\InventoryWorkflowService;
 use App\Services\ItemImportWorkbook;
+use App\Support\ApproverResolver;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\RedirectResponse;
@@ -43,8 +44,8 @@ class OperationsController extends Controller
             ->firstOrFail();
         $finalStep = $approval->steps->sortByDesc('level')->first();
         abort_unless(
-            $user->role === UserRole::UnitManager
-            && $user->warehouse?->type === 'main'
+            $user->role?->isTransactionApprover()
+            && ($user->role === UserRole::WarehouseManager || $user->warehouse?->type === 'main')
             && $finalStep?->stage_key === 'warehouse_manager'
             && $finalStep->status === 'approved'
             && $finalStep->acted_by === $user->id,
@@ -487,7 +488,7 @@ class OperationsController extends Controller
         $destination = Warehouse::whereKey($destinationId)->where('type', 'unit')->where('is_active', true)->firstOrFail();
         $unitManager = User::where('role', UserRole::UnitManager)->where('warehouse_id', $destination->id)->first();
         $warehouseAdmin = User::whereIn('role', [UserRole::WarehouseAdminDry, UserRole::WarehouseAdminWet])->where('warehouse_id', $source->id)->first();
-        $warehouseManager = User::where('role', UserRole::UnitManager)->where('warehouse_id', $source->id)->first();
+        $warehouseManager = ApproverResolver::forWarehouse((int) $source->id);
         abort_unless($unitManager, 422, 'Manajer unit Anda belum dikonfigurasi.');
         abort_unless($warehouseAdmin, 422, 'Admin gudang sumber belum dikonfigurasi.');
         abort_unless($warehouseManager, 422, 'Manajer gudang sumber belum dikonfigurasi.');
@@ -511,7 +512,8 @@ class OperationsController extends Controller
             $source = Warehouse::findOrFail($data['from_warehouse_id']);
             $unitManager = User::where('role', UserRole::UnitManager)->where('warehouse_id', $destination->id)->firstOrFail();
             $warehouseAdmin = User::whereIn('role', [UserRole::WarehouseAdminDry, UserRole::WarehouseAdminWet])->where('warehouse_id', $source->id)->firstOrFail();
-            $warehouseManager = User::where('role', UserRole::UnitManager)->where('warehouse_id', $source->id)->firstOrFail();
+            $warehouseManager = ApproverResolver::forWarehouse((int) $source->id);
+            abort_unless($warehouseManager, 422, 'Manajer gudang sumber belum dikonfigurasi.');
             $stockRequest = StockRequest::create(['number' => $this->number('REQ'), 'type' => 'to_unit', 'from_warehouse_id' => $source->id, 'to_warehouse_id' => $destination->id, 'request_date' => now(), 'notes' => $data['notes'] ?? null, 'requested_by' => $request->user()->id, 'assigned_approver_id' => $unitManager->id]);
             $stockRequest->details()->createMany(collect($data['details'])->map(fn (array $detail) => [
                 'item_id' => $detail['item_id'],
@@ -719,10 +721,7 @@ class OperationsController extends Controller
 
     private function warehouseManager(int $warehouseId): User
     {
-        $manager = User::with('warehouse:id,name')
-            ->where('role', UserRole::UnitManager)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
+        $manager = ApproverResolver::forWarehouse($warehouseId);
 
         abort_unless($manager, 422, 'Manajer untuk gudang yang dipilih belum dikonfigurasi.');
 

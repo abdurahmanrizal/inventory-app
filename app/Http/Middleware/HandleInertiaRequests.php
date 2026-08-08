@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
+use App\Support\NotificationPresenter;
+use App\Support\PendingApprovalStats;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Vite;
 use Inertia\Middleware;
@@ -52,16 +55,15 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => fn () => $user?->permissionCodes() ?? [],
                 'notifications' => fn () => $user ? [
                     'unread_count' => $user->unreadNotifications()->count(),
-                    'items' => $user->notifications()->latest()->limit(8)->get()->map(fn ($notification) => [
-                        'id' => $notification->id,
-                        'type' => $notification->type,
-                        'data' => $notification->data,
-                        'read_at' => $notification->read_at?->toIso8601String(),
-                        'created_at' => $notification->created_at?->toIso8601String(),
-                    ]),
+                    'items' => $user->notifications()->latest()
+                        ->limit($user->role === UserRole::WarehouseManager ? 30 : 8)
+                        ->get()->map(fn ($notification) => NotificationPresenter::make($notification)),
                 ] : ['unread_count' => 0, 'items' => []],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'approvalScope' => fn () => $user?->role === UserRole::WarehouseManager
+                ? PendingApprovalStats::forWarehouseManager($user)
+                : ['main' => [], 'counts' => []],
         ];
     }
 }

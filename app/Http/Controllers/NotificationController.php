@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
+use App\Support\NotificationPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,13 +16,9 @@ class NotificationController extends Controller
 
         return response()->json([
             'unread_count' => $user->unreadNotifications()->count(),
-            'items' => $user->notifications()->latest()->limit(8)->get()->map(fn ($notification) => [
-                'id' => $notification->id,
-                'type' => $notification->type,
-                'data' => $notification->data,
-                'read_at' => $notification->read_at?->toIso8601String(),
-                'created_at' => $notification->created_at?->toIso8601String(),
-            ]),
+            'items' => $user->notifications()->latest()
+                ->limit($user->role === UserRole::WarehouseManager ? 30 : 8)
+                ->get()->map(fn ($notification) => NotificationPresenter::make($notification)),
         ])->header('Cache-Control', 'no-store, private');
     }
 

@@ -167,6 +167,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
   const permissions = props.auth?.permissions || [];
   const hasPermission = (permission) =>
     role === "superadmin" || permissions.includes(permission);
+  const approvalScope = props.approvalScope || { main: [], counts: {} };
   const canManageWarehouse = [
     "superadmin",
     "warehouse_admin_dry",
@@ -181,6 +182,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
   const canApprove = [
     "superadmin",
     "unit_manager",
+    "warehouse_manager",
     "warehouse_admin_dry",
     "warehouse_admin_wet",
   ].includes(role);
@@ -307,6 +309,28 @@ export default function AppLayout({ children, title, fullWidth = false }) {
                   >
                     <Icon size={19} strokeWidth={active ? 2.2 : 1.8} />
                     <span className="flex-1">{label}</span>
+                    {label === "Approval" &&
+                      role === "warehouse_manager" &&
+                      approvalScope.main?.length > 0 &&
+                      approvalScope.counts && (
+                        <span className="flex shrink-0 items-center gap-1">
+                          {approvalScope.main.map((warehouse) => {
+                            const count =
+                              approvalScope.counts[warehouse.id] || 0;
+
+                            return (
+                              <span
+                                key={warehouse.id}
+                                title={`${warehouse.name}: ${count} menunggu approval`}
+                                className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${active ? "bg-white/20 text-white" : "bg-emerald-400/15 text-emerald-300"}`}
+                              >
+                                {warehouse.name.replace("Gudang Utama ", "")}{" "}
+                                {count}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      )}
                     {active && (
                       <ChevronRight size={15} className="opacity-75" />
                     )}
@@ -373,7 +397,11 @@ export default function AppLayout({ children, title, fullWidth = false }) {
               {online ? <Wifi size={14} /> : <WifiOff size={14} />}
               {online ? "Online" : "Offline"}
             </span>
-            <NotificationMenu notifications={props.auth?.notifications} />
+            <NotificationMenu
+              notifications={props.auth?.notifications}
+              role={role}
+              mainWarehouses={approvalScope.main || []}
+            />
           </div>
         </header>
         {!online && (

@@ -10,6 +10,7 @@ use App\Models\StockCostLayer;
 use App\Models\StockLedger;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Support\WarehouseScope;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,27 +22,28 @@ class InventoryReportService
     public function context(User $user, ?int $requestedWarehouseId): array
     {
         $canViewAll = in_array($user->role, [UserRole::Superadmin, UserRole::Finance], true);
-        abort_unless($canViewAll || $user->warehouse_id, 403, 'Akun belum terhubung dengan gudang atau unit.');
+        $isMainWarehouseManager = $user->role === UserRole::WarehouseManager;
+        abort_unless($canViewAll || $isMainWarehouseManager || $user->warehouse_id, 403, 'Akun belum terhubung dengan gudang atau unit.');
 
         $userWarehouse = $user->warehouse;
         $canViewWarehouseUnits = ! $canViewAll
             && $userWarehouse?->type === 'main'
-            && ($user->role?->isWarehouseAdmin() || $user->role === UserRole::UnitManager);
+            && ($user->role?->isWarehouseAdmin() || $user->role?->isTransactionApprover());
         $canViewUnitAndMain = ! $canViewAll
             && $userWarehouse?->type === 'unit'
             && $user->role === UserRole::UnitManager;
 
-        $ids = $canViewAll
-            ? Warehouse::where('is_active', true)->pluck('id')
-            : ($canViewWarehouseUnits
-                ? Warehouse::where('is_active', true)
-                    ->where(fn ($query) => $query->whereKey($user->warehouse_id)->orWhere('main_warehouse_id', $user->warehouse_id))
-                    ->pluck('id')
-                : ($canViewUnitAndMain
-                    ? Warehouse::where('is_active', true)
-                        ->where(fn ($query) => $query->where('type', 'main')->orWhere('id', $user->warehouse_id))
-                        ->pluck('id')
-                    : collect([$user->warehouse_id])));
+        $ids = match (true) {
+            $canViewAll => Warehouse::where('is_active', true)->pluck('id'),
+            $isMainWarehouseManager => WarehouseScope::activeMainNetworks(),
+            $canViewWarehouseUnits => Warehouse::where('is_active', true)
+                ->where(fn ($query) => $query->whereKey($user->warehouse_id)->orWhere('main_warehouse_id', $user->warehouse_id))
+                ->pluck('id'),
+            $canViewUnitAndMain => Warehouse::where('is_active', true)
+                ->where(fn ($query) => $query->where('type', 'main')->orWhere('id', $user->warehouse_id))
+                ->pluck('id'),
+            default => collect([$user->warehouse_id]),
+        };
 
         $canFilter = $ids->count() > 1;
         $warehouseId = $canFilter ? $requestedWarehouseId : $user->warehouse_id;
@@ -54,7 +56,7 @@ class InventoryReportService
             'warehouseId' => $warehouseId,
             'canFilterWarehouse' => $canFilter,
             'warehouses' => Warehouse::whereIn('id', $ids)->orderBy('name')->get(['id', 'code', 'name', 'type']),
-            'accessLabel' => $canViewAll ? 'Seluruh gudang' : ($canFilter ? 'Gudang dalam cakupan akun' : 'Gudang akun Anda'),
+            'accessLabel' => $canViewAll ? 'Seluruh gudang' : ($isMainWarehouseManager ? 'Gudang utama kering/basah dan seluruh unit terkait' : ($canFilter ? 'Gudang dalam cakupan akun' : 'Gudang akun Anda')),
         ];
     }
 
@@ -62,59 +64,150 @@ class InventoryReportService
     {
         $from = Carbon::parse($filters['date_from'])->startOfDay();
         $to = Carbon::parse($filters['date_to'])->endOfDay();
+        $all = (bool) ($filters['all'] ?? false);
+        $perPage = 10;
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $search = $filters['search'] ?? null;
+
         $base = StockLedger::query()
             ->whereIn('warehouse_id', $warehouseIds)
             ->when($warehouseId, fn (Builder $query) => $query->where('warehouse_id', $warehouseId))
             ->when($filters['item_id'] ?? null, fn (Builder $query, $id) => $query->where('item_id', $id))
-            ->when($filters['batch_no'] ?? null, fn (Builder $query, $batch) => $query->where('batch_no', 'like', '%'.$batch.'%'));
+            ->when($filters['batch_no'] ?? null, fn (Builder $query, $batch) => $query->where('batch_no', 'like', '%'.$batch.'%'))
+            ->when($search, function (Builder $query, $search) {
+                $query->whereHas('item', fn (Builder $q) => $q->where('code', 'like', '%'.$search.'%')->orWhere('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('warehouse', fn (Builder $q) => $q->where('code', 'like', '%'.$search.'%')->orWhere('name', 'like', '%'.$search.'%'));
+            });
 
-        $opening = (clone $base)->where('created_at', '<', $from)
+        $groupKeys = (clone $base)->whereBetween('created_at', [$from, $to])
+            ->select('warehouse_id', 'item_id')
+            ->distinct()
+            ->orderBy('warehouse_id')->orderBy('item_id')
+            ->get();
+
+        $totalGroups = $groupKeys->count();
+        $lastPage = max(1, (int) ceil($totalGroups / $perPage));
+        $page = min($page, $lastPage);
+        $pageKeys = $all ? $groupKeys : $groupKeys->slice(($page - 1) * $perPage, $perPage)->values();
+
+        if ($pageKeys->isEmpty()) {
+            return [
+                'groups' => [],
+                'summary' => ['opening' => 0, 'in' => 0, 'out' => 0, 'closing' => 0, 'openingValue' => 0, 'incomingValue' => 0, 'outgoingValue' => 0, 'closingValue' => 0],
+                'pagination' => ['page' => $page, 'per_page' => $perPage, 'total' => 0, 'last_page' => 1],
+                'limited' => false,
+            ];
+        }
+
+        $bindings = [];
+        $placeholders = $pageKeys->map(function ($k) use (&$bindings) {
+            $bindings[] = $k->warehouse_id;
+            $bindings[] = $k->item_id;
+
+            return '(?, ?)';
+        })->implode(', ');
+
+        $period = StockLedger::query()
+            ->whereRaw("(warehouse_id, item_id) IN ($placeholders)", $bindings)
+            ->whereBetween('created_at', [$from, $to])
+            ->with(['warehouse:id,code,name', 'item:id,code,name,base_uom', 'creator:id,name', 'stockTransaction:id,number,type,request_kind,stock_out_reason'])
+            ->oldest('created_at')->oldest('id')
+            ->get();
+
+        $openings = StockLedger::query()
+            ->whereRaw("(warehouse_id, item_id) IN ($placeholders)", $bindings)
+            ->where('created_at', '<', $from)
+            ->select('warehouse_id', 'item_id')
+            ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty ELSE -qty END), 0) AS opening_qty")
+            ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty * unit_cost ELSE -qty * unit_cost END), 0) AS opening_value")
+            ->groupBy('warehouse_id', 'item_id')
+            ->get()
+            ->keyBy(fn ($o) => $o->warehouse_id.'|'.$o->item_id);
+
+        $groups = $period->groupBy(fn (StockLedger $ledger) => $ledger->warehouse_id.'|'.$ledger->item_id)
+            ->map(function ($group) use ($openings) {
+                $first = $group->first();
+                $key = $first->warehouse_id.'|'.$first->item_id;
+                $openingQty = (float) ($openings->get($key)?->opening_qty ?? 0);
+                $openingValue = (float) ($openings->get($key)?->opening_value ?? 0);
+                $runningQty = $openingQty;
+                $runningValue = $openingValue;
+                $rows = $group->map(function (StockLedger $ledger) use (&$runningQty, &$runningValue) {
+                    $qtyIn = $ledger->direction === 'in' ? (float) $ledger->qty : 0;
+                    $qtyOut = $ledger->direction === 'out' ? (float) $ledger->qty : 0;
+                    $runningQty += $qtyIn - $qtyOut;
+                    $runningValue += $ledger->direction === 'in' ? $qtyIn * (float) $ledger->unit_cost : -($qtyOut * (float) $ledger->unit_cost);
+
+                    return [
+                        'id' => $ledger->id,
+                        'date' => $ledger->created_at?->format('Y-m-d H:i'),
+                        'reference' => $ledger->stockTransaction?->number ?? ($ledger->reference_type ? ucfirst(str_replace('_', ' ', $ledger->reference_type)).' #'.$ledger->reference_id : '-'),
+                        'movement_note' => $this->stockLedgerMovementNote($ledger),
+                        'batch_no' => $ledger->batch_no,
+                        'qty_in' => $qtyIn,
+                        'qty_out' => $qtyOut,
+                        'balance_qty' => $runningQty,
+                        'balance_value' => $runningValue,
+                        'unit_cost' => (float) $ledger->unit_cost,
+                        'creator' => $ledger->creator?->name,
+                    ];
+                });
+
+                return [
+                    'warehouse' => $first->warehouse,
+                    'item' => $first->item,
+                    'opening_qty' => $openingQty,
+                    'opening_value' => $openingValue,
+                    'rows' => $rows,
+                    'subtotal' => [
+                        'in' => (float) $group->where('direction', 'in')->sum('qty'),
+                        'out' => (float) $group->where('direction', 'out')->sum('qty'),
+                        'value_in' => (float) $group->where('direction', 'in')->sum(fn ($l) => (float) $l->qty * (float) $l->unit_cost),
+                        'value_out' => (float) $group->where('direction', 'out')->sum(fn ($l) => (float) $l->qty * (float) $l->unit_cost),
+                        'closing_qty' => $runningQty,
+                        'closing_value' => $runningValue,
+                    ],
+                ];
+            })->values();
+
+        $globalOpening = (clone $base)->where('created_at', '<', $from)
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty ELSE -qty END), 0) AS qty")
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty * unit_cost ELSE -qty * unit_cost END), 0) AS value")
             ->first();
 
-        $periodTotals = (clone $base)->whereBetween('created_at', [$from, $to])
+        $globalPeriod = (clone $base)->whereBetween('created_at', [$from, $to])
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty ELSE 0 END), 0) AS qty_in")
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'out' THEN qty ELSE 0 END), 0) AS qty_out")
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'in' THEN qty * unit_cost ELSE 0 END), 0) AS value_in")
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'out' THEN qty * unit_cost ELSE 0 END), 0) AS value_out")
             ->first();
 
-        $rows = (clone $base)->with(['warehouse:id,code,name', 'item:id,code,name,base_uom', 'creator:id,name', 'stockTransaction:id,number,type,request_kind,stock_out_reason'])
-            ->whereBetween('created_at', [$from, $to])->oldest('created_at')->oldest('id')->limit(500)->get()
-            ->map(function (StockLedger $ledger) {
-                $qtyIn = $ledger->direction === 'in' ? (float) $ledger->qty : 0;
-                $qtyOut = $ledger->direction === 'out' ? (float) $ledger->qty : 0;
-
-                return [
-                    'id' => $ledger->id,
-                    'date' => $ledger->created_at?->format('Y-m-d H:i'),
-                    'warehouse' => $ledger->warehouse,
-                    'item' => $ledger->item,
-                    'reference' => $ledger->stockTransaction?->number ?? ($ledger->reference_type ? ucfirst(str_replace('_', ' ', $ledger->reference_type)).' #'.$ledger->reference_id : '-'),
-                    'movement_note' => $this->stockLedgerMovementNote($ledger),
-                    'batch_no' => $ledger->batch_no,
-                    'qty_in' => $qtyIn,
-                    'qty_out' => $qtyOut,
-                    'balance_qty' => (float) $ledger->balance_qty,
-                    'unit_cost' => (float) $ledger->unit_cost,
-                    'creator' => $ledger->creator?->name,
-                ];
-            });
+        $totalOpeningQty = (float) $globalOpening->qty;
+        $totalOpeningValue = (float) $globalOpening->value;
+        $totalIn = (float) $globalPeriod->qty_in;
+        $totalOut = (float) $globalPeriod->qty_out;
+        $totalValueIn = (float) $globalPeriod->value_in;
+        $totalValueOut = (float) $globalPeriod->value_out;
 
         return [
-            'rows' => $rows,
+            'groups' => $groups,
             'summary' => [
-                'opening' => (float) $opening->qty,
-                'in' => (float) $periodTotals->qty_in,
-                'out' => (float) $periodTotals->qty_out,
-                'closing' => (float) $opening->qty + (float) $periodTotals->qty_in - (float) $periodTotals->qty_out,
-                'openingValue' => (float) $opening->value,
-                'incomingValue' => (float) $periodTotals->value_in,
-                'outgoingValue' => (float) $periodTotals->value_out,
-                'closingValue' => (float) $opening->value + (float) $periodTotals->value_in - (float) $periodTotals->value_out,
+                'opening' => $totalOpeningQty,
+                'in' => $totalIn,
+                'out' => $totalOut,
+                'closing' => $totalOpeningQty + $totalIn - $totalOut,
+                'openingValue' => $totalOpeningValue,
+                'incomingValue' => $totalValueIn,
+                'outgoingValue' => $totalValueOut,
+                'closingValue' => $totalOpeningValue + $totalValueIn - $totalValueOut,
             ],
-            'limited' => $rows->count() === 500,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $totalGroups,
+                'last_page' => $lastPage,
+            ],
+            'limited' => false,
         ];
     }
 

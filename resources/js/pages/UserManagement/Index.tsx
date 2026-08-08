@@ -23,6 +23,7 @@ const roleTone: Record<string, string> = {
   warehouse_admin_dry: "bg-amber-50 text-amber-700",
   warehouse_admin_wet: "bg-blue-50 text-blue-700",
   unit_manager: "bg-emerald-50 text-emerald-700",
+  warehouse_manager: "bg-teal-50 text-teal-700",
   unit_user: "bg-slate-100 text-slate-700",
   finance: "bg-cyan-50 text-cyan-700",
 };
@@ -181,7 +182,9 @@ export default function Index({ users, warehouses, roles }: any) {
                     ...form.data,
                     role: e.target.value,
                     warehouse_id:
-                      ["superadmin", "finance"].includes(e.target.value)
+                      ["superadmin", "finance", "warehouse_manager"].includes(
+                        e.target.value,
+                      )
                         ? ""
                         : form.data.warehouse_id,
                   })
@@ -194,7 +197,9 @@ export default function Index({ users, warehouses, roles }: any) {
                 ))}
               </select>
             </label>
-            {!['superadmin', 'finance'].includes(form.data.role) && (
+            {!['superadmin', 'finance', 'warehouse_manager'].includes(
+              form.data.role,
+            ) && (
               <label className="block space-y-1.5">
                 <span className="text-xs font-semibold text-slate-700">
                   Gudang / unit
@@ -332,9 +337,11 @@ export default function Index({ users, warehouses, roles }: any) {
                     >
                       {user.role === "finance"
                         ? "Keuangan"
-                        : user.role
-                            .replaceAll("_", " ")
-                            .replace(/\b\w/g, (char: string) => char.toUpperCase())}
+                        : user.role === "warehouse_manager"
+                          ? "Manajer Gudang Utama"
+                          : user.role
+                              .replaceAll("_", " ")
+                              .replace(/\b\w/g, (char: string) => char.toUpperCase())}
                     </span>
                     <p className="mt-1.5 text-xs text-slate-400">
                       {user.warehouse?.name || "Akses seluruh gudang"}

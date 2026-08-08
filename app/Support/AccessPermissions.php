@@ -24,6 +24,7 @@ final class AccessPermissions
         'warehouse_admin_wet' => ['approval.act', 'stock.ship', 'stock.adjust', 'stock.in', 'stock.out', 'stock.view', 'report.view'],
         'unit_user' => ['stock.request', 'stock.receive', 'stock.out', 'stock.view'],
         'unit_manager' => ['approval.act', 'stock.view', 'activity.view', 'report.view'],
+        'warehouse_manager' => ['approval.act', 'stock.view', 'activity.view', 'report.view'],
         'finance' => ['stock.view', 'activity.view', 'report.view'],
     ];
 }

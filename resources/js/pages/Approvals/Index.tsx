@@ -46,6 +46,9 @@ export default function Index({
   warehouses,
   canFilterWarehouse,
   selectedWarehouse,
+  userRole,
+  mainWarehouses = [],
+  warehouseCounts = {},
 }) {
   const [rejecting, setRejecting] = useState(null);
   const [approving, setApproving] = useState(null);
@@ -56,6 +59,33 @@ export default function Index({
   const [historySearch, setHistorySearch] = useState("");
   const [historyDateFrom, setHistoryDateFrom] = useState("");
   const [historyDateTo, setHistoryDateTo] = useState("");
+  const [activeMainWarehouse, setActiveMainWarehouse] = useState(null);
+  const isMainWarehouseManager = userRole === "warehouse_manager";
+
+  const warehouseOfTransaction = (transaction) =>
+    transaction.type === "stock_in"
+      ? transaction.destination_warehouse_id
+      : transaction.request_kind === "unit_return"
+        ? transaction.destination_warehouse_id
+      : transaction.source_warehouse_id || transaction.destination_warehouse_id;
+  const warehouseOfWorkflow = (approval) =>
+    approval.module === "stock_adjustment"
+      ? approval.inventory_document?.warehouse_id
+      : approval.stock_request?.from_warehouse_id;
+
+  const visibleTransactions = isMainWarehouseManager && activeMainWarehouse
+    ? (transactions.data || []).filter(
+        (transaction) =>
+          String(warehouseOfTransaction(transaction)) === activeMainWarehouse,
+      )
+    : transactions.data;
+  const visibleWorkflowApprovals =
+    isMainWarehouseManager && activeMainWarehouse
+      ? workflowApprovals.filter(
+          (approval) =>
+            String(warehouseOfWorkflow(approval)) === activeMainWarehouse,
+        )
+      : workflowApprovals;
 
   const dateFilteredHistory = useMemo(() => {
     const search = historySearch.trim().toLocaleLowerCase("id-ID");
@@ -110,7 +140,14 @@ export default function Index({
   );
 
   usePoll(5000, {
-    only: ["transactions", "workflowApprovals", "approvalHistory"],
+    only: [
+      "transactions",
+      "workflowApprovals",
+      "approvalHistory",
+      "mainWarehouses",
+      "warehouseCounts",
+      "approvalScope",
+    ],
     preserveScroll: true,
     preserveState: true,
   });
@@ -222,8 +259,46 @@ export default function Index({
         </div>
       </div>
 
+      {isMainWarehouseManager && mainWarehouses.length > 0 && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveMainWarehouse(null)}
+            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${!activeMainWarehouse ? "border-emerald-600 bg-emerald-600 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50"}`}
+          >
+            Semua gudang utama
+            <span
+              className={`grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[10px] ${!activeMainWarehouse ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}
+            >
+              {(transactions.total ?? transactions.data.length) +
+                workflowApprovals.length}
+            </span>
+          </button>
+          {mainWarehouses.map((warehouse) => {
+            const count = warehouseCounts[warehouse.id] || 0;
+            const active = activeMainWarehouse === String(warehouse.id);
+
+            return (
+              <button
+                key={warehouse.id}
+                type="button"
+                onClick={() => setActiveMainWarehouse(String(warehouse.id))}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${active ? "border-emerald-600 bg-emerald-600 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50"}`}
+              >
+                {warehouse.name}
+                <span
+                  className={`grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[10px] ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="space-y-4">
-        {workflowApprovals.map((approval) => {
+        {visibleWorkflowApprovals.map((approval) => {
           const stockRequest = approval.stock_request;
           const inventoryDocument = approval.inventory_document;
           const isInventoryControl = approval.module === "stock_adjustment";
@@ -423,7 +498,7 @@ export default function Index({
           );
         })}
 
-        {transactions.data.map((transaction) => (
+        {visibleTransactions.map((transaction) => (
           <article
             key={transaction.id}
             className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:shadow-[0_12px_32px_rgba(15,23,42,0.07)]"
@@ -512,6 +587,8 @@ export default function Index({
                           Qty{" "}
                           <b className="font-semibold text-slate-700">
                             {Number(detail.qty).toLocaleString("id-ID")}
+                            {" "}
+                            {detail.item?.base_uom || ""}
                           </b>
                         </span>
                         <span>
@@ -620,7 +697,7 @@ export default function Index({
           </article>
         ))}
 
-        {!transactions.data.length && !workflowApprovals.length && (
+        {!visibleTransactions.length && !visibleWorkflowApprovals.length && (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
             <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
               <ClipboardCheck size={25} />

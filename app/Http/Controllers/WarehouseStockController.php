@@ -7,6 +7,7 @@ use App\Models\CurrentStock;
 use App\Models\InventorySetting;
 use App\Models\StockCostLayer;
 use App\Models\Warehouse;
+use App\Support\WarehouseScope;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,29 +18,30 @@ class WarehouseStockController extends Controller
     {
         $user = $request->user();
         $canViewAll = in_array($user->role, [UserRole::Superadmin, UserRole::Finance], true);
-        abort_unless($canViewAll || $user->warehouse_id, 403, 'Akun belum terhubung dengan gudang atau unit.');
+        $isMainWarehouseManager = $user->role === UserRole::WarehouseManager;
+        abort_unless($canViewAll || $isMainWarehouseManager || $user->warehouse_id, 403, 'Akun belum terhubung dengan gudang atau unit.');
 
         $userWarehouse = $user->warehouse;
         $canViewWarehouseUnits = ! $canViewAll
             && $userWarehouse?->type === 'main'
-            && ($user->role?->isWarehouseAdmin() || $user->role === UserRole::UnitManager);
+            && ($user->role?->isWarehouseAdmin() || $user->role?->isTransactionApprover());
         $canViewUnitAndMainWarehouses = ! $canViewAll
             && $userWarehouse?->type === 'unit'
             && in_array($user->role, [UserRole::UnitUser, UserRole::UnitManager], true);
 
-        $accessibleWarehouseIds = $canViewAll
-            ? Warehouse::where('is_active', true)->pluck('id')
-            : ($canViewWarehouseUnits
-                ? Warehouse::where('is_active', true)
-                    ->where(fn ($query) => $query->whereKey($user->warehouse_id)->orWhere('main_warehouse_id', $user->warehouse_id))
-                    ->pluck('id')
-                : ($canViewUnitAndMainWarehouses
-                    ? Warehouse::where('is_active', true)
-                        ->where(fn ($query) => $query->where('type', 'main')->orWhere('id', $user->warehouse_id))
-                        ->pluck('id')
-                    : collect([$user->warehouse_id])));
+        $accessibleWarehouseIds = match (true) {
+            $canViewAll => Warehouse::where('is_active', true)->pluck('id'),
+            $isMainWarehouseManager => WarehouseScope::activeMainNetworks(),
+            $canViewWarehouseUnits => Warehouse::where('is_active', true)
+                ->where(fn ($query) => $query->whereKey($user->warehouse_id)->orWhere('main_warehouse_id', $user->warehouse_id))
+                ->pluck('id'),
+            $canViewUnitAndMainWarehouses => Warehouse::where('is_active', true)
+                ->where(fn ($query) => $query->where('type', 'main')->orWhere('id', $user->warehouse_id))
+                ->pluck('id'),
+            default => collect([$user->warehouse_id]),
+        };
 
-        $canFilterWarehouse = $canViewAll || $canViewWarehouseUnits || $canViewUnitAndMainWarehouses;
+        $canFilterWarehouse = $canViewAll || $isMainWarehouseManager || $canViewWarehouseUnits || $canViewUnitAndMainWarehouses;
         $warehouseId = $canFilterWarehouse ? ($request->integer('warehouse_id') ?: null) : $user->warehouse_id;
         if ($warehouseId) {
             abort_unless($accessibleWarehouseIds->contains($warehouseId), 403, 'Gudang tidak termasuk cakupan akses akun Anda.');
@@ -101,9 +103,11 @@ class WarehouseStockController extends Controller
             'valuationMethod' => $setting->valuation_method->value,
             'accessLabel' => $canViewAll
                 ? 'Akses seluruh gudang'
+                : ($isMainWarehouseManager
+                    ? 'Akses gudang utama kering/basah dan seluruh unit terkait'
                 : ($canViewWarehouseUnits
                     ? 'Akses gudang utama dan seluruh unit terkait'
-                    : ($canViewUnitAndMainWarehouses ? 'Akses gudang utama kering/basah dan unit Anda' : 'Akses gudang/unit akun Anda')),
+                    : ($canViewUnitAndMainWarehouses ? 'Akses gudang utama kering/basah dan unit Anda' : 'Akses gudang/unit akun Anda'))),
             'summary' => ['items' => $stocks->count(), 'onHand' => $stocks->sum('qty_on_hand'), 'reserved' => $stocks->sum('qty_reserved'), 'available' => $stocks->sum('qty_available'), 'value' => $stocks->sum('stock_value')],
         ]);
     }

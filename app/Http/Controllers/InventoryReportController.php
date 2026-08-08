@@ -34,6 +34,7 @@ class InventoryReportController extends Controller
     public function export(Request $request, string $format, InventoryReportService $reports, InventoryReportExport $export): HttpResponse
     {
         abort_unless(in_array($format, ['pdf', 'xlsx'], true), 404);
+        $request->merge(['all' => true]);
         [$report, $filters, $context, $data] = $this->reportData($request, $reports);
         $warehouseName = $context['warehouseId']
             ? $context['warehouses']->firstWhere('id', $context['warehouseId'])?->name
@@ -75,6 +76,8 @@ class InventoryReportController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'days' => ['nullable', 'integer', Rule::in([30, 60, 90, 180, 365])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'all' => ['nullable', 'boolean'],
         ]);
 
         $report = $filters['report'] ?? 'ledger';

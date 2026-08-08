@@ -25,7 +25,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(5, Warehouse::count());
-        $this->assertSame(11, User::where('email', 'like', '%@wms.test')->count());
+        $this->assertSame(13, User::where('email', 'like', '%@wms.test')->count());
         $this->assertSame(5, Item::count());
         $this->assertSame(['GR', 'KG', 'LTR'], Uom::orderBy('code')->pluck('code')->all());
         $this->assertSame(5, DB::table('item_uoms')->count());

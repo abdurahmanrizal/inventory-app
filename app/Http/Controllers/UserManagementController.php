@@ -24,7 +24,7 @@ class UserManagementController extends Controller
             'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'type']),
             'roles' => collect(UserRole::cases())->map(fn (UserRole $role) => [
                 'value' => $role->value,
-                'label' => $role === UserRole::Finance ? 'Keuangan' : ucwords(str_replace('_', ' ', $role->value)),
+                'label' => UserRole::label($role),
             ]),
         ]);
     }
@@ -75,7 +75,7 @@ class UserManagementController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'role' => ['required', Rule::enum(UserRole::class)],
-            'warehouse_id' => ['nullable', 'exists:warehouses,id', Rule::requiredIf(fn () => ! in_array(request('role'), [UserRole::Superadmin->value, UserRole::Finance->value], true))],
+            'warehouse_id' => ['nullable', 'exists:warehouses,id', Rule::requiredIf(fn () => ! in_array(request('role'), [UserRole::Superadmin->value, UserRole::Finance->value, UserRole::WarehouseManager->value], true))],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
         ];
     }

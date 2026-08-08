@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\InventoryValuationMethod;
+use App\Enums\UserRole;
 use App\Models\CurrentStock;
 use App\Models\Delivery;
 use App\Models\GoodsReceipt;
@@ -17,6 +18,7 @@ use App\Models\User;
 use App\Models\WorkflowApproval;
 use App\Models\WorkflowApprovalStep;
 use App\Notifications\StockRequestWorkflowNotification;
+use App\Support\ApproverResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -92,7 +94,8 @@ class InventoryWorkflowService
         DB::transaction(function () use ($approval, $actor, $action, $remarks) {
             $approval = WorkflowApproval::lockForUpdate()->findOrFail($approval->id);
             $step = $approval->steps()->where('level', $approval->current_level)->where('status', 'pending')->first();
-            if (! $step || ($step->approver_id !== $actor->id && $actor->role?->value !== 'superadmin')) {
+            $canRepresent = $step && ApproverResolver::canRepresentMainWarehouseApprover($actor, $step->approver_id);
+            if (! $step || ($step->approver_id !== $actor->id && $actor->role?->value !== 'superadmin' && ! $canRepresent)) {
                 throw ValidationException::withMessages(['approval' => 'Anda bukan approver aktif untuk tahap ini.']);
             }
 
@@ -158,6 +161,10 @@ class InventoryWorkflowService
         }
 
         $recipientId = $step->approver_id;
+        $request = StockRequest::with('fromWarehouse.mainWarehouse')->find($approval->transaction_id);
+        $mainWarehouse = $request?->fromWarehouse?->type === 'main'
+            ? $request->fromWarehouse
+            : $request?->fromWarehouse?->mainWarehouse;
         $notification = new StockRequestWorkflowNotification(
             event: 'approval_required',
             workflowApprovalId: $approval->id,
@@ -169,9 +176,20 @@ class InventoryWorkflowService
             stageKey: $step->stage_key,
             stageLabel: $step->stage_label,
             actorName: $actor?->name,
+            mainWarehouseId: $mainWarehouse?->id,
+            mainWarehouseName: $mainWarehouse?->name,
         );
 
-        DB::afterCommit(fn () => User::find($recipientId)?->notify($notification));
+        $recipientIds = collect([$recipientId]);
+        if ($step->stage_key === 'warehouse_manager' && $mainWarehouse) {
+            $recipientIds = $recipientIds->merge(
+                User::query()->where('role', UserRole::WarehouseManager)->pluck('id'),
+            );
+        }
+        $recipientIds = $recipientIds->unique()->values();
+        DB::afterCommit(fn () => $recipientIds->each(
+            fn (int $id) => User::find($id)?->notify($notification),
+        ));
     }
 
     private function scheduleCreatorUpdate(WorkflowApproval $approval, string $event, User $actor, WorkflowApprovalStep $step): void

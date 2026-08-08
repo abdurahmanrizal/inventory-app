@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\StockLedger;
 use App\Models\Warehouse;
+use App\Support\WarehouseScope;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,12 +16,21 @@ class TransactionActivityController extends Controller
     {
         $user = $request->user();
         $canViewAll = in_array($user->role, [UserRole::Superadmin, UserRole::Finance], true);
-        abort_unless($canViewAll || $user->role === UserRole::UnitManager, 403);
-        abort_unless($canViewAll || $user->warehouse_id, 403, 'Manajer belum terhubung dengan gudang atau unit.');
+        $isMainWarehouseManager = $user->role === UserRole::WarehouseManager;
+        abort_unless($canViewAll || $user->role === UserRole::UnitManager || $isMainWarehouseManager, 403);
+        abort_unless($canViewAll || $user->warehouse_id || $isMainWarehouseManager, 403, 'Manajer belum terhubung dengan gudang atau unit.');
 
-        $warehouseId = $canViewAll ? ($request->integer('warehouse_id') ?: null) : $user->warehouse_id;
+        $mainWarehouseIds = $isMainWarehouseManager
+            ? WarehouseScope::activeMainNetworks()
+            : collect();
+        $warehouseId = $canViewAll
+            ? ($request->integer('warehouse_id') ?: null)
+            : ($isMainWarehouseManager
+                ? ($request->integer('warehouse_id') ?: null)
+                : $user->warehouse_id);
         $query = StockLedger::with(['warehouse:id,code,name,type', 'item:id,code,name,base_uom', 'creator:id,name', 'stockTransaction:id,number,type,status,stock_out_reason'])
             ->when($warehouseId, fn ($builder) => $builder->where('warehouse_id', $warehouseId))
+            ->when($isMainWarehouseManager && ! $warehouseId, fn ($builder) => $builder->whereIn('warehouse_id', $mainWarehouseIds))
             ->when($request->filled('direction'), fn ($builder) => $builder->where('direction', $request->string('direction')))
             ->when($request->filled('reference_type'), fn ($builder) => $builder->where('reference_type', $request->string('reference_type')))
             ->when($request->filled('date_from'), fn ($builder) => $builder->whereDate('created_at', '>=', $request->date('date_from')))
@@ -37,9 +47,11 @@ class TransactionActivityController extends Controller
 
         return Inertia::render('TransactionActivity/Index', [
             'activities' => $activities,
-            'warehouses' => $canViewAll ? Warehouse::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'type']) : [],
-            'canFilterWarehouse' => $canViewAll,
-            'activeWarehouse' => $canViewAll ? null : $user->warehouse?->only(['id', 'code', 'name', 'type']),
+            'warehouses' => $canViewAll || $isMainWarehouseManager
+                ? Warehouse::where('is_active', true)->when($isMainWarehouseManager, fn ($query) => $query->whereIn('id', $mainWarehouseIds))->orderByRaw("type = 'main' desc")->orderBy('name')->get(['id', 'code', 'name', 'type'])
+                : [],
+            'canFilterWarehouse' => $canViewAll || $isMainWarehouseManager,
+            'activeWarehouse' => $canViewAll || $isMainWarehouseManager ? null : $user->warehouse?->only(['id', 'code', 'name', 'type']),
             'filters' => $request->only(['warehouse_id', 'direction', 'reference_type', 'date_from', 'date_to', 'search']),
             'summary' => [
                 'count' => (clone $summaryQuery)->count(),

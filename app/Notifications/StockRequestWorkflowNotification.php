@@ -20,6 +20,8 @@ class StockRequestWorkflowNotification extends Notification
         public readonly ?string $stageKey = null,
         public readonly ?string $stageLabel = null,
         public readonly ?string $actorName = null,
+        public readonly ?int $mainWarehouseId = null,
+        public readonly ?string $mainWarehouseName = null,
     ) {}
 
     /** @return array<int, string> */
@@ -43,6 +45,8 @@ class StockRequestWorkflowNotification extends Notification
             'stage_key' => $this->stageKey,
             'stage_label' => $this->stageLabel,
             'actor_name' => $this->actorName,
+            'main_warehouse_id' => $this->mainWarehouseId,
+            'main_warehouse_name' => $this->mainWarehouseName,
         ];
     }
 

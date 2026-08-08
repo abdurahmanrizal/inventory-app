@@ -11,6 +11,7 @@ use App\Models\StockRequest;
 use App\Models\StockTransaction;
 use App\Models\Warehouse;
 use App\Services\InventoryReportService;
+use App\Support\WarehouseScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,18 +24,20 @@ class DashboardController extends Controller
         $isSuperadmin = $user->role === UserRole::Superadmin;
         $isFinance = $user->role === UserRole::Finance;
         $canViewAll = $isSuperadmin || $isFinance;
+        $isMainWarehouseManager = $user->role === UserRole::WarehouseManager;
         $isMainWarehouseAccount = $user->warehouse?->type === 'main'
-            && ($user->role?->isWarehouseAdmin() || $user->role === UserRole::UnitManager);
+            && ($user->role?->isWarehouseAdmin() || $user->role?->isTransactionApprover());
 
-        $warehouseIds = $canViewAll
-            ? Warehouse::where('is_active', true)->pluck('id')
-            : ($isMainWarehouseAccount
-                ? Warehouse::where('is_active', true)
-                    ->where(fn (Builder $query) => $query
-                        ->where('id', $user->warehouse_id)
-                        ->orWhere('main_warehouse_id', $user->warehouse_id))
-                    ->pluck('id')
-                : collect([$user->warehouse_id])->filter());
+        $warehouseIds = match (true) {
+            $canViewAll => Warehouse::where('is_active', true)->pluck('id'),
+            $isMainWarehouseManager => WarehouseScope::activeMainNetworks(),
+            $isMainWarehouseAccount => Warehouse::where('is_active', true)
+                ->where(fn (Builder $query) => $query
+                    ->where('id', $user->warehouse_id)
+                    ->orWhere('main_warehouse_id', $user->warehouse_id))
+                ->pluck('id'),
+            default => collect([$user->warehouse_id])->filter(),
+        };
 
         $stockQuery = CurrentStock::query()->whereIn('warehouse_id', $warehouseIds);
         $transactionScope = fn (Builder $query) => $query->where(fn (Builder $scope) => $scope
@@ -95,9 +98,11 @@ class DashboardController extends Controller
                 ->sortByDesc('sort_date')->take(8)->values(),
             'scopeLabel' => $canViewAll
                 ? 'Seluruh gudang dan unit'
-                : ($isMainWarehouseAccount
+                : ($isMainWarehouseManager
+                    ? 'Gudang utama kering/basah dan seluruh unit terkait'
+                    : ($isMainWarehouseAccount
                     ? $user->warehouse->name.' dan unit terkait'
-                    : 'Transaksi dan persediaan '.$user->warehouse?->name),
+                    : 'Transaksi dan persediaan '.$user->warehouse?->name)),
             'quickActions' => [
                 'stockIn' => $user->hasPermission('stock.in') && ($isSuperadmin || $user->role?->isWarehouseAdmin()),
                 'stockOut' => $user->hasPermission('stock.out') && ($isSuperadmin || $user->role?->isWarehouseAdmin() || $user->role === UserRole::UnitUser),

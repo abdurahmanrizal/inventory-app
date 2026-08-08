@@ -9,6 +9,8 @@ import {
   Boxes,
   CalendarDays,
   ChartNoAxesCombined,
+  ChevronRight,
+  ChevronLeft,
   ClipboardCheck,
   Download,
   Filter,
@@ -21,7 +23,8 @@ import {
   Warehouse,
 } from "lucide-react";
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useRef, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import SearchableItemSelect from "../../components/searchable-item-select";
 import AppLayout from "../../layouts/AppLayout";
 
@@ -387,7 +390,7 @@ export default function Index({
         </form>
 
         <div className="mt-6">
-          {report === "ledger" && <Ledger data={data} />}
+          {report === "ledger" && <Ledger data={data} filters={filters} />}
           {report === "purchase-history" && <PurchaseHistory data={data} />}
           {report === "slow-moving" && (
             <SlowMoving data={data} days={filters.days} />
@@ -444,7 +447,24 @@ function PurchaseHistory({ data }: any) {
   );
 }
 
-function Ledger({ data }: any) {
+function Ledger({ data, filters }: any) {
+  const [search, setSearch] = useState(filters.search || "");
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pagination = data.pagination || { page: 1, per_page: 10, total: 0, last_page: 1 };
+
+  const goToPage = (page: number) => {
+    router.get("/reports", { ...filters, report: "ledger", page }, { preserveState: true, replace: true });
+  };
+
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      router.get("/reports", { ...filters, report: "ledger", search: value, page: 1 }, { preserveState: true, replace: true });
+    }, 400);
+  };
+
   return (
     <>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -472,56 +492,179 @@ function Ledger({ data }: any) {
           tone="amber"
         />
       </section>
-      <ReportTable
-        title="Riwayat kartu stok"
-        note={
-          data.limited
-            ? "Menampilkan maksimal 500 mutasi pertama."
-            : `${data.rows.length} mutasi ditemukan.`
-        }
-        headers={[
-          "Tanggal",
-          "Gudang",
-          "Item / batch",
-          "Referensi",
-          "Keterangan pengeluaran",
-          "Masuk",
-          "Keluar",
-          "Saldo",
-          "Petugas",
-        ]}
-      >
-        {data.rows.length ? (
-          data.rows.map((row: any) => (
-            <tr key={row.id} className="hover:bg-slate-50/70">
-              <Cell>{row.date}</Cell>
-              <Cell>
-                <b>{row.warehouse.name}</b>
-                <small>{row.warehouse.code}</small>
-              </Cell>
-              <Cell>
-                <b>{row.item.name}</b>
-                <small>
-                  {row.item.code} · {row.batch_no || "Tanpa batch"}
-                </small>
-              </Cell>
-              <Cell>{row.reference}</Cell>
-              <Cell>{row.movement_note || "-"}</Cell>
-              <Cell strong tone="emerald">
-                {row.qty_in ? number(row.qty_in) : "-"}
-              </Cell>
-              <Cell strong tone="rose">
-                {row.qty_out ? number(row.qty_out) : "-"}
-              </Cell>
-              <Cell strong>{number(row.balance_qty)}</Cell>
-              <Cell>{row.creator || "-"}</Cell>
-            </tr>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-slate-950">Kartu Stok</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            {pagination.total} kartu stok ditemukan · hal. {pagination.page} dari {pagination.last_page}
+          </p>
+        </div>
+        <div className="relative">
+          <Filter className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Cari item atau gudang…"
+            className="w-64 rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
+          />
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">
+        {data.groups.length ? (
+          data.groups.map((group: any, gi: number) => (
+            <StockCard
+              key={gi}
+              group={group}
+              open={openIndex === gi}
+              onToggle={() => setOpenIndex(openIndex === gi ? null : gi)}
+            />
           ))
         ) : (
-          <EmptyRow colSpan={9} />
+          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <Empty
+              message={search.trim() ? "Tidak ada kartu stok yang cocok." : undefined}
+            />
+          </div>
         )}
-      </ReportTable>
+      </div>
+      {pagination.last_page > 1 && (
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={pagination.page <= 1}
+            onClick={() => goToPage(pagination.page - 1)}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="size-4" />
+            Sebelumnya
+          </button>
+          <span className="px-3 text-sm font-medium text-slate-600">
+            {pagination.page} / {pagination.last_page}
+          </span>
+          <button
+            type="button"
+            disabled={pagination.page >= pagination.last_page}
+            onClick={() => goToPage(pagination.page + 1)}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Berikutnya
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+      )}
     </>
+  );
+}
+
+function StockCard({ group, open, onToggle }: any) {
+  const uom = group.item.base_uom;
+  const rowCount = group.rows.length;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full flex-wrap items-center justify-between gap-4 bg-slate-50/50 px-5 py-4 text-left transition hover:bg-slate-50"
+      >
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <ChevronRight
+            className={`size-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-90" : ""}`}
+          />
+          <Warehouse className="size-4 text-slate-400" />
+          <span className="font-semibold text-slate-900">{group.warehouse.name}</span>
+          <Badge variant="secondary" className="bg-slate-200/70 text-slate-700">{group.warehouse.code}</Badge>
+          <span className="text-slate-300">·</span>
+          <span className="font-semibold text-slate-900">{group.item.name}</span>
+          <Badge variant="outline" className="border-slate-300 bg-slate-100 text-slate-600">{group.item.code}</Badge>
+          <span className="text-xs text-slate-400">{rowCount} mutasi</span>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="text-right">
+            <div className="text-xs text-slate-500">Saldo awal</div>
+            <div className="font-semibold text-slate-700">
+              {number(group.opening_qty)} {uom}
+            </div>
+          </div>
+          <div className="h-8 w-px bg-slate-200" />
+          <div className="text-right">
+            <div className="text-xs text-slate-500">Saldo akhir</div>
+            <div className="font-semibold text-slate-700">
+              {number(group.subtotal.closing_qty)} {uom}
+            </div>
+          </div>
+        </div>
+      </button>
+      {open && (
+        <div className="max-w-full overflow-x-auto border-t border-slate-100">
+          <table className="w-full min-w-[860px] table-auto text-sm">
+            <thead className="border-b border-slate-100 text-left text-[11px] uppercase tracking-[.1em] text-slate-500">
+              <tr>
+                <th className="whitespace-nowrap px-5 py-2.5 font-medium">Tanggal</th>
+                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Referensi</th>
+                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Keterangan</th>
+                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Batch</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Masuk</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Keluar</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Saldo</th>
+                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Petugas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {rowCount ? (
+                group.rows.map((row: any) => (
+                  <tr key={row.id} className="hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-5 py-3 text-slate-600">
+                      <div className="font-medium text-slate-800">{row.date?.slice(0, 10)}</div>
+                      <div className="text-xs text-slate-400">{row.date?.slice(11)}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">{row.reference}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">{row.movement_note || "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                      {row.batch_no || <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-emerald-600">
+                      {row.qty_in ? number(row.qty_in) : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-rose-600">
+                      {row.qty_out ? number(row.qty_out) : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-800">
+                      {number(row.balance_qty)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">{row.creator || "—"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-400">
+                    Tidak ada mutasi pada periode ini.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot className="border-t-2 border-slate-100 bg-slate-50/80">
+              <tr>
+                <td colSpan={4} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Subtotal {group.item.name}
+                </td>
+                <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">
+                  {number(group.subtotal.in)}
+                </td>
+                <td className="px-4 py-3 text-right font-semibold tabular-nums text-rose-700">
+                  {number(group.subtotal.out)}
+                </td>
+                <td className="px-4 py-3 text-right font-bold tabular-nums text-slate-900">
+                  {number(group.subtotal.closing_qty)}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -1106,7 +1249,7 @@ function ReportTable({ title, note, headers, children }: any) {
   );
 }
 
-function Cell({ children, strong, tone }: any) {
+function Cell({ children, strong, tone, align }: any) {
   const color =
     tone === "rose"
       ? "text-rose-600"
@@ -1116,7 +1259,7 @@ function Cell({ children, strong, tone }: any) {
 
   return (
     <td
-      className={`whitespace-nowrap px-4 py-3.5 [&_b]:block [&_b]:max-w-52 [&_b]:truncate [&_small]:mt-1 [&_small]:block [&_small]:max-w-52 [&_small]:truncate [&_small]:text-xs [&_small]:font-normal [&_small]:text-slate-400 ${strong ? `font-semibold ${color}` : "text-slate-600"}`}
+      className={`whitespace-nowrap px-4 py-3.5 [&_b]:block [&_b]:max-w-52 [&_b]:truncate [&_small]:mt-1 [&_small]:block [&_small]:max-w-52 [&_small]:truncate [&_small]:text-xs [&_small]:font-normal [&_small]:text-slate-400 ${align === "right" ? "text-right tabular-nums" : ""} ${strong ? `font-semibold ${color}` : "text-slate-600"}`}
     >
       {children}
     </td>

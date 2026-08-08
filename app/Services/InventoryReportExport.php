@@ -51,6 +51,11 @@ class InventoryReportExport
                     'font' => ['bold' => true, 'color' => ['rgb' => '0F172A']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F1F5F9']],
                 ]);
+            } elseif ($rowType === 'opening') {
+                $worksheet->getStyle('A'.$excelRow.':'.$lastColumn.$excelRow)->applyFromArray([
+                    'font' => ['italic' => true, 'color' => ['rgb' => '475569']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F8FAFC']],
+                ]);
             }
         }
 
@@ -179,26 +184,27 @@ class InventoryReportExport
 
     private function groupedLedgerTable(array $data): array
     {
-        $rows = collect($data['rows'])
-            ->groupBy(fn ($row) => data_get($row, 'item.id') ?? data_get($row, 'item.code'))
-            ->sortBy(fn ($group) => data_get($group->first(), 'item.name'))
+        $rows = collect($data['groups'])
+            ->sortBy(fn ($group) => data_get($group['warehouse'], 'name').' '.data_get($group['item'], 'name'))
             ->flatMap(function ($group) {
-                $first = $group->first();
-                $itemLabel = data_get($first, 'item.code').' - '.data_get($first, 'item.name')
-                    .' ('.data_get($first, 'item.base_uom', '-').')';
-                $detailRows = $group->map(fn ($row) => [
-                    $row['date'], data_get($row, 'warehouse.name'), $row['reference'], $row['movement_note'] ?? '-', $row['batch_no'] ?: '-',
+                $warehouseLabel = data_get($group['warehouse'], 'code').' - '.data_get($group['warehouse'], 'name');
+                $itemLabel = data_get($group['item'], 'code').' - '.data_get($group['item'], 'name')
+                    .' ('.data_get($group['item'], 'base_uom', '-').')';
+                $detailRows = collect($group['rows'])->map(fn ($row) => [
+                    $row['date'], $warehouseLabel, $row['reference'], $row['movement_note'] ?? '-', $row['batch_no'] ?: '-',
                     $row['qty_in'], $row['qty_out'], $row['balance_qty'], $row['unit_cost'], $row['creator'] ?: '-',
                 ]);
-                $subtotal = [
+                $subtotal = $group['subtotal'];
+                $subtotalRow = [
                     'Subtotal '.$itemLabel, '', '', '', '',
-                    $group->sum('qty_in'), $group->sum('qty_out'), $group->last()['balance_qty'], '', '',
+                    $subtotal['in'], $subtotal['out'], $subtotal['closing_qty'], '', '',
                 ];
 
                 return collect([
-                    ['_type' => 'group', 'cells' => [$itemLabel]],
+                    ['_type' => 'group', 'cells' => [$warehouseLabel.'  →  '.$itemLabel]],
+                    ['_type' => 'opening', 'cells' => ['Saldo awal', '', '', '', '', '', '', $group['opening_qty'], '', '']],
                     ...$detailRows->all(),
-                    ['_type' => 'subtotal', 'cells' => $subtotal],
+                    ['_type' => 'subtotal', 'cells' => $subtotalRow],
                 ]);
             })->values()->all();
 

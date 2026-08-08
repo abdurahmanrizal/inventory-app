@@ -7,12 +7,15 @@ use App\Enums\TransactionType;
 use App\Enums\UserRole;
 use App\Models\CurrentStock;
 use App\Models\InventorySetting;
+use App\Models\Item;
 use App\Models\StockCostLayer;
 use App\Models\StockLedger;
 use App\Models\StockTransaction;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Notifications\StockTransactionApprovalNotification;
 use App\Services\InventoryValuationService;
+use App\Support\ApproverResolver;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -59,34 +62,52 @@ class StockTransactionController extends Controller
             $warehouses->whereKey($user->warehouse_id);
         }
 
-        $stockWarehouseIds = $user->warehouse_id
-            ? collect([$user->warehouse_id])
-            : (clone $warehouses)->pluck('id');
-        $availableStocks = CurrentStock::query()
-            ->with('item:id,code,name,base_uom,warehouse_type')
-            ->whereHas('item', fn ($query) => $query->where('is_active', true))
-            ->whereIn('warehouse_id', $stockWarehouseIds)
-            ->whereColumn('qty_on_hand', '>', 'qty_reserved')
-            ->get()
-            ->groupBy('item_id')
-            ->map(function ($stocks) {
-                $item = $stocks->first()->item;
+        if ($type === TransactionType::StockIn->value) {
+            $itemWarehouseType = match ($role) {
+                UserRole::WarehouseAdminDry => 'dry',
+                UserRole::WarehouseAdminWet => 'wet',
+                default => null,
+            };
+            $availableItems = Item::query()
+                ->where('is_active', true)
+                ->when($itemWarehouseType, fn ($query) => $query->whereIn('warehouse_type', [$itemWarehouseType, 'both']))
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'base_uom', 'warehouse_type'])
+                ->map(fn (Item $item) => [
+                    ...$item->only(['id', 'code', 'name', 'base_uom', 'warehouse_type']),
+                    'warehouse_ids' => [],
+                    'available_qty' => 0,
+                ]);
+        } else {
+            $stockWarehouseIds = $user->warehouse_id
+                ? collect([$user->warehouse_id])
+                : (clone $warehouses)->pluck('id');
+            $availableItems = CurrentStock::query()
+                ->with('item:id,code,name,base_uom,warehouse_type')
+                ->whereHas('item', fn ($query) => $query->where('is_active', true))
+                ->whereIn('warehouse_id', $stockWarehouseIds)
+                ->whereColumn('qty_on_hand', '>', 'qty_reserved')
+                ->get()
+                ->groupBy('item_id')
+                ->map(function ($stocks) {
+                    $item = $stocks->first()->item;
 
-                return [
-                    'id' => $item->id,
-                    'code' => $item->code,
-                    'name' => $item->name,
-                    'base_uom' => $item->base_uom,
-                    'warehouse_type' => $item->warehouse_type,
-                    'warehouse_ids' => $stocks->pluck('warehouse_id')->unique()->values(),
-                    'available_qty' => $stocks->sum(fn (CurrentStock $stock) => $stock->qty_available),
-                ];
-            })->values();
+                    return [
+                        'id' => $item->id,
+                        'code' => $item->code,
+                        'name' => $item->name,
+                        'base_uom' => $item->base_uom,
+                        'warehouse_type' => $item->warehouse_type,
+                        'warehouse_ids' => $stocks->pluck('warehouse_id')->unique()->values(),
+                        'available_qty' => $stocks->sum(fn (CurrentStock $stock) => $stock->qty_available),
+                    ];
+                })->values();
+        }
 
         return Inertia::render($type === 'stock_in' ? 'StockIn/Index' : 'StockOut/Index', [
             'transactions' => $transactions->paginate(15)->withQueryString(),
             'warehouses' => $warehouses->get(['id', 'name', 'type', 'main_warehouse_id']),
-            'items' => $availableStocks,
+            'items' => $availableItems,
             'stockInMode' => 'supplier_receipt',
             'userWarehouse' => $user->warehouse,
             'access' => ['isSuperadmin' => $isSuperadmin, 'isUnitAdmin' => $isUnitAdmin],
@@ -99,6 +120,9 @@ class StockTransactionController extends Controller
             $request->user()->hasPermission('stock.in') || $request->user()->hasPermission('stock.out'),
             403,
         );
+        $unitCostRules = $request->input('type') === TransactionType::StockIn->value
+            ? ['required', 'numeric', 'gt:0']
+            : ['nullable', 'numeric', 'gte:0'];
         $data = $request->validate([
             'type' => ['required', Rule::enum(TransactionType::class)],
             'request_kind' => ['nullable', Rule::in(['supplier_receipt', 'unit_request', 'unit_return'])],
@@ -111,7 +135,7 @@ class StockTransactionController extends Controller
             'delivery_proof_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=8000,max_height=8000'],
             'document_date' => ['required', 'date'], 'notes' => ['nullable', 'string'],
             'details' => ['required', 'array', 'min:1'], 'details.*.item_id' => ['required', 'exists:items,id'],
-            'details.*.qty' => ['required', 'numeric', 'gt:0'], 'details.*.unit_cost' => ['nullable', 'numeric', 'gte:0'],
+            'details.*.qty' => ['required', 'numeric', 'gt:0'], 'details.*.unit_cost' => $unitCostRules,
             'details.*.batch_no' => ['nullable', 'string', 'max:100'], 'details.*.expired_at' => ['nullable', 'date'],
         ]);
 
@@ -132,6 +156,20 @@ class StockTransactionController extends Controller
                 $data['destination_warehouse_id'] = $user->warehouse_id;
             }
             abort_unless($data['destination_warehouse_id'] ?? null, 422, 'Gudang tujuan wajib dipilih.');
+            $allowedItemWarehouseType = match ($role) {
+                UserRole::WarehouseAdminDry => 'dry',
+                UserRole::WarehouseAdminWet => 'wet',
+                default => null,
+            };
+            if ($allowedItemWarehouseType) {
+                $invalidItemExists = Item::query()
+                    ->whereIn('id', collect($data['details'])->pluck('item_id'))
+                    ->where(fn ($query) => $query
+                        ->where('is_active', false)
+                        ->orWhereNotIn('warehouse_type', [$allowedItemWarehouseType, 'both']))
+                    ->exists();
+                abort_if($invalidItemExists, 422, 'Item tidak sesuai dengan jenis gudang tujuan.');
+            }
             $approvalWarehouseId = $data['destination_warehouse_id'];
         } else {
             abort_unless($isSuperadmin || $isWarehouseAdmin || $isUnitAdmin, 403);
@@ -162,15 +200,10 @@ class StockTransactionController extends Controller
         $approvalWarehouseIds = $isUnitReturn
             ? [$user->warehouse_id, $data['destination_warehouse_id']]
             : [$approvalWarehouseId];
-        $approvers = User::query()
-            ->where('role', UserRole::UnitManager)
-            ->whereIn('warehouse_id', $approvalWarehouseIds)
-            ->orderByRaw('CASE WHEN warehouse_id = ? THEN 0 ELSE 1 END', [$approvalWarehouseIds[0]])
-            ->orderBy('name')
-            ->get()
-            ->unique('warehouse_id');
-        abort_unless($approvers->count() === count(array_unique($approvalWarehouseIds)), 422, 'Manajer untuk gudang terkait belum ditentukan.');
-        $approverIds = $approvers->pluck('id')->all();
+        $approvers = ApproverResolver::forWarehouses($approvalWarehouseIds);
+        $missingWarehouseIds = array_diff(array_unique($approvalWarehouseIds), array_keys($approvers));
+        abort_unless($missingWarehouseIds === [], 422, 'Manajer untuk gudang terkait belum ditentukan.');
+        $approverIds = array_values(array_map(fn (int $id) => $approvers[$id]->id, array_unique($approvalWarehouseIds)));
         $assignedApproverId = $approverIds[0];
 
         if ($requestKind === 'supplier_receipt') {
@@ -218,6 +251,23 @@ class StockTransactionController extends Controller
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($storedImages);
             throw $exception;
+        }
+
+        if ($type === TransactionType::StockIn) {
+            $mainWarehouse = Warehouse::findOrFail($tx->destination_warehouse_id);
+            $recipientIds = User::query()
+                ->where('role', UserRole::WarehouseManager)
+                ->pluck('id')
+                ->push($assignedApproverId)
+                ->unique();
+            $recipientIds->each(fn (int $recipientId) => User::find($recipientId)?->notify(
+                new StockTransactionApprovalNotification(
+                    transactionId: $tx->id,
+                    transactionNo: $tx->number,
+                    mainWarehouseId: $mainWarehouse->id,
+                    mainWarehouseName: $mainWarehouse->name,
+                ),
+            ));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "Transaksi {$tx->number} berhasil diajukan ke manajer."]);

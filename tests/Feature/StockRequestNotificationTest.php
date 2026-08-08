@@ -85,4 +85,43 @@ class StockRequestNotificationTest extends TestCase
             ->assertNotFound();
         $this->assertNull($notification->fresh()->read_at);
     }
+
+    public function test_global_warehouse_manager_receives_main_warehouse_notification_with_tab_scope(): void
+    {
+        $main = Warehouse::create(['code' => 'NOTIF-DRY', 'name' => 'Gudang Utama Kering', 'type' => 'main']);
+        $unit = Warehouse::create(['code' => 'NOTIF-DRY-UNIT', 'name' => 'Unit Kering', 'type' => 'unit', 'main_warehouse_id' => $main->id]);
+        $creator = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
+        $scopedManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $main->id]);
+        $globalManager = User::factory()->create(['role' => UserRole::WarehouseManager, 'warehouse_id' => null]);
+        $request = StockRequest::create([
+            'number' => 'REQ-NOTIFICATION-GLOBAL',
+            'type' => 'to_unit',
+            'from_warehouse_id' => $main->id,
+            'to_warehouse_id' => $unit->id,
+            'request_date' => now(),
+            'requested_by' => $creator->id,
+        ]);
+
+        app(InventoryWorkflowService::class)->requestApproval('stock_request', $request, $creator, [[
+            'stage_key' => 'warehouse_manager',
+            'stage_label' => 'Approval manajer gudang utama kering',
+            'approver_id' => $scopedManager->id,
+        ]]);
+
+        $this->assertDatabaseHas('notifications', [
+            'type' => 'stock-request.approval_required',
+            'notifiable_id' => $scopedManager->id,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'type' => 'stock-request.approval_required',
+            'notifiable_id' => $globalManager->id,
+        ]);
+
+        $this->actingAs($globalManager)
+            ->getJson(route('notifications.index'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('items.0.data.main_warehouse_id', $main->id)
+            ->assertJsonPath('items.0.data.main_warehouse_name', 'Gudang Utama Kering');
+    }
 }

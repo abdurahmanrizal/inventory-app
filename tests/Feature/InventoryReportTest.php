@@ -39,7 +39,8 @@ class InventoryReportTest extends TestCase
             ->where('data.summary.in', 10)
             ->where('data.summary.out', 3)
             ->where('data.summary.closing', 7)
-            ->has('data.rows', 2));
+            ->has('data.groups', 1)
+            ->has('data.groups.0.rows', 2));
     }
 
     public function test_stock_ledger_shows_stock_out_reason(): void
@@ -61,15 +62,15 @@ class InventoryReportTest extends TestCase
 
         $this->actingAs($admin)->get('/reports?report=ledger&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))
             ->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.rows.0.reference', 'OUT-REASON-001')
-            ->where('data.rows.0.movement_note', 'Waste / terbuang'));
+            ->where('data.groups.0.rows.0.reference', 'OUT-REASON-001')
+            ->where('data.groups.0.rows.0.movement_note', 'Waste / terbuang'));
 
         $data = app(InventoryReportService::class)->stockLedger(collect([$warehouse->id]), $warehouse->id, [
-            'date_from' => now()->format('Y-m-d'), 'date_to' => now()->format('Y-m-d'),
+            'date_from' => now()->format('Y-m-d'), 'date_to' => now()->format('Y-m-d'), 'all' => true,
         ]);
         [$headers, $rows] = app(InventoryReportExport::class)->table('ledger', $data);
         $this->assertContains('Keterangan Pengeluaran', $headers);
-        $this->assertSame('Waste / terbuang', $rows[1][3]);
+        $this->assertSame('Waste / terbuang', $rows[2][3]);
     }
 
     public function test_manager_report_is_limited_to_assigned_warehouse(): void
@@ -82,8 +83,8 @@ class InventoryReportTest extends TestCase
         $this->ledger($other, $item, $manager, 'in', 9, now());
 
         $this->actingAs($manager)->get('/reports')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('data.rows', 1)
-            ->where('data.rows.0.warehouse.id', $own->id));
+            ->has('data.groups', 1)
+            ->where('data.groups.0.warehouse.id', $own->id));
     }
 
     public function test_report_item_options_only_include_stock_from_accessible_warehouses(): void

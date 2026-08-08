@@ -12,19 +12,22 @@ class StockService
 {
     public function __construct(private readonly InventoryValuationService $valuation) {}
 
-    public function approveAndPost(StockTransaction $transaction, int $managerId, ?string $remarks = null): StockTransaction
+    public function approveAndPost(StockTransaction $transaction, int $managerId, ?string $remarks = null, bool $canRepresentApprover = false): StockTransaction
     {
-        return DB::transaction(function () use ($transaction, $managerId, $remarks) {
+        return DB::transaction(function () use ($transaction, $managerId, $remarks, $canRepresentApprover) {
             $transaction = StockTransaction::query()->with(['details', 'approvals'])->lockForUpdate()->findOrFail($transaction->id);
             if ($transaction->status !== TransactionStatus::WaitingApproval) {
                 throw ValidationException::withMessages(['status' => 'Transaksi tidak berada pada status menunggu persetujuan.']);
             }
             $activeApproval = $transaction->approvals()->where('status', 'pending')->orderBy('level')->lockForUpdate()->first();
-            if ($activeApproval && $activeApproval->approver_id !== $managerId) {
+            if ($activeApproval && $activeApproval->approver_id !== $managerId && ! $canRepresentApprover) {
                 throw ValidationException::withMessages(['approval' => 'Anda bukan approver aktif untuk transaksi ini.']);
             }
             if ($activeApproval) {
-                $activeApproval->update(['status' => 'approved', 'remarks' => $remarks, 'acted_at' => now()]);
+                $activeApproval->update([
+                    'approver_id' => $canRepresentApprover ? $managerId : $activeApproval->approver_id,
+                    'status' => 'approved', 'remarks' => $remarks, 'acted_at' => now(),
+                ]);
             }
 
             $hasPendingApprovals = $transaction->approvals()->where('status', 'pending')->exists();
@@ -49,19 +52,22 @@ class StockService
         });
     }
 
-    public function reject(StockTransaction $transaction, int $managerId, string $remarks): void
+    public function reject(StockTransaction $transaction, int $managerId, string $remarks, bool $canRepresentApprover = false): void
     {
-        DB::transaction(function () use ($transaction, $managerId, $remarks) {
+        DB::transaction(function () use ($transaction, $managerId, $remarks, $canRepresentApprover) {
             $transaction = StockTransaction::query()->with('approvals')->lockForUpdate()->findOrFail($transaction->id);
             if ($transaction->status !== TransactionStatus::WaitingApproval) {
                 throw ValidationException::withMessages(['status' => 'Transaksi tidak berada pada status menunggu persetujuan.']);
             }
             $activeApproval = $transaction->approvals()->where('status', 'pending')->orderBy('level')->lockForUpdate()->first();
-            if ($activeApproval && $activeApproval->approver_id !== $managerId) {
+            if ($activeApproval && $activeApproval->approver_id !== $managerId && ! $canRepresentApprover) {
                 throw ValidationException::withMessages(['approval' => 'Anda bukan approver aktif untuk transaksi ini.']);
             }
             if ($activeApproval) {
-                $activeApproval->update(['status' => 'rejected', 'remarks' => $remarks, 'acted_at' => now()]);
+                $activeApproval->update([
+                    'approver_id' => $canRepresentApprover ? $managerId : $activeApproval->approver_id,
+                    'status' => 'rejected', 'remarks' => $remarks, 'acted_at' => now(),
+                ]);
             }
             $transaction->update(['status' => TransactionStatus::Rejected, 'approved_by' => $managerId, 'approved_at' => now()]);
         });
