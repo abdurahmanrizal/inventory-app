@@ -416,10 +416,11 @@ function PurchaseHistory({ data }: any) {
       </section>
       <ReportTable
         title="Laporan pembelian persediaan"
-        note={data.limited ? "Menampilkan maksimal 1.000 detail." : `${data.rows.length} detail PO dan penerimaan ditemukan.`}
+        note={data.limited ? "Menampilkan maksimal 1.000 detail; grand total tetap menghitung seluruh data sesuai filter." : `${data.rows.length} detail Stock In ditemukan.`}
         headers={["Stock In / tanggal", "Supplier / gudang", "Item / batch", "Kuantitas", "Biaya / nilai", "Approval manajer", "Waktu posting", "Layer FIFO"]}
       >
-        {data.rows.length ? data.rows.map((row: any, index: number) => (
+        {data.rows.length ? <>
+          {data.rows.map((row: any, index: number) => (
           <tr key={`${row.detail_id}-${index}`} className="hover:bg-slate-50/70">
             <Cell><b>{row.transaction_number}</b><small>{row.document_date}</small></Cell>
             <Cell><b>{row.supplier_name}</b><small>{row.warehouse_name}</small></Cell>
@@ -430,7 +431,14 @@ function PurchaseHistory({ data }: any) {
             <Cell><b>{row.posted_at}</b><small>Dibuat oleh {row.created_by_name}</small></Cell>
             <Cell>{row.valuation_method === "fifo" ? (row.fifo_layer_ids.length ? row.fifo_layer_ids.map((id: number) => `#${id}`).join(", ") : "Belum terbentuk") : "Tidak berlaku (Moving Average)"}</Cell>
           </tr>
-        )) : <EmptyRow colSpan={8} />}
+          ))}
+          <tr className="border-t-2 border-emerald-200 bg-emerald-50/70">
+            <td colSpan={3} className="px-4 py-4 text-sm font-bold uppercase tracking-[.08em] text-emerald-800">Grand Total</td>
+            <td className="whitespace-nowrap px-4 py-4 font-bold text-emerald-800">{number(data.summary.qty)}</td>
+            <td className="whitespace-nowrap px-4 py-4 font-bold text-emerald-800">{money(data.summary.totalValue)}</td>
+            <td colSpan={3} className="px-4 py-4 text-right text-xs font-semibold text-emerald-700">Seluruh item sesuai filter aktif</td>
+          </tr>
+        </> : <EmptyRow colSpan={8} />}
       </ReportTable>
     </>
   );
@@ -476,6 +484,7 @@ function Ledger({ data }: any) {
           "Gudang",
           "Item / batch",
           "Referensi",
+          "Keterangan pengeluaran",
           "Masuk",
           "Keluar",
           "Saldo",
@@ -497,6 +506,7 @@ function Ledger({ data }: any) {
                 </small>
               </Cell>
               <Cell>{row.reference}</Cell>
+              <Cell>{row.movement_note || "-"}</Cell>
               <Cell strong tone="emerald">
                 {row.qty_in ? number(row.qty_in) : "-"}
               </Cell>
@@ -508,7 +518,7 @@ function Ledger({ data }: any) {
             </tr>
           ))
         ) : (
-          <EmptyRow colSpan={8} />
+          <EmptyRow colSpan={9} />
         )}
       </ReportTable>
     </>

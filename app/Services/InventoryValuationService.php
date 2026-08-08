@@ -38,6 +38,51 @@ class InventoryValuationService
             ->value('cost');
     }
 
+    public function estimatedIssueUnitCost(int $warehouseId, int $itemId, float $qty, ?string $batch = null): float
+    {
+        if ($qty <= 0) {
+            return 0;
+        }
+
+        $remaining = $qty;
+        $totalCost = 0.0;
+        if ($this->method() === InventoryValuationMethod::Fifo) {
+            $sources = StockCostLayer::query()
+                ->where('warehouse_id', $warehouseId)
+                ->where('item_id', $itemId)
+                ->when($batch !== null, fn ($query) => $query->where('batch_no', $batch))
+                ->where('remaining_qty', '>', 0)
+                ->orderBy('received_at')->orderBy('id')->get();
+            foreach ($sources as $layer) {
+                $take = min($remaining, (float) $layer->remaining_qty);
+                $totalCost += $take * (float) $layer->unit_cost;
+                $remaining -= $take;
+                if ($remaining <= 0) {
+                    break;
+                }
+            }
+        } else {
+            $sources = CurrentStock::query()
+                ->where('warehouse_id', $warehouseId)
+                ->where('item_id', $itemId)
+                ->when($batch !== null, fn ($query) => $query->where('batch_no', $batch))
+                ->where('qty_on_hand', '>', 0)
+                ->orderByRaw('expired_at IS NULL, expired_at')->orderBy('created_at')->get();
+            foreach ($sources as $stock) {
+                $take = min($remaining, (float) $stock->qty_on_hand);
+                $totalCost += $take * (float) $stock->average_cost;
+                $remaining -= $take;
+                if ($remaining <= 0) {
+                    break;
+                }
+            }
+        }
+
+        $coveredQty = $qty - max(0, $remaining);
+
+        return $coveredQty > 0 ? $totalCost / $coveredQty : 0;
+    }
+
     public function receive(
         int $warehouseId,
         int $itemId,

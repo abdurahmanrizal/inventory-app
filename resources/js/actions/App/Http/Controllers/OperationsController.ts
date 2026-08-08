@@ -184,7 +184,7 @@ stockRequests.form = stockRequestsForm
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-export const deliveryNote = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+export const deliveryNote = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -199,7 +199,7 @@ deliveryNote.definition = {
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.url = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+deliveryNote.url = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { stockRequest: args }
     }
@@ -232,7 +232,7 @@ deliveryNote.url = (args: { stockRequest: string | number | { id: string | numbe
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.get = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+deliveryNote.get = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -242,7 +242,7 @@ deliveryNote.get = (args: { stockRequest: string | number | { id: string | numbe
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.head = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+deliveryNote.head = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: deliveryNote.url(args, options),
     method: 'head',
 })
@@ -252,7 +252,7 @@ deliveryNote.head = (args: { stockRequest: string | number | { id: string | numb
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-const deliveryNoteForm = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+const deliveryNoteForm = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -262,7 +262,7 @@ const deliveryNoteForm = (args: { stockRequest: string | number | { id: string |
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNoteForm.get = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+deliveryNoteForm.get = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -272,7 +272,7 @@ deliveryNoteForm.get = (args: { stockRequest: string | number | { id: string | n
 * @see app/Http/Controllers/OperationsController.php:36
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNoteForm.head = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+deliveryNoteForm.head = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'HEAD',
@@ -650,7 +650,7 @@ itemImportTemplate.form = itemImportTemplateForm
 * @see app/Http/Controllers/OperationsController.php:319
 * @route '/operations/master-data/suppliers/{supplier}'
 */
-export const updateSupplier = (args: { supplier: string | number | { id: string | number } } | [supplier: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+export const updateSupplier = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateSupplier.url(args, options),
     method: 'put',
 })
@@ -665,7 +665,7 @@ updateSupplier.definition = {
 * @see app/Http/Controllers/OperationsController.php:319
 * @route '/operations/master-data/suppliers/{supplier}'
 */
-updateSupplier.url = (args: { supplier: string | number | { id: string | number } } | [supplier: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+updateSupplier.url = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { supplier: args }
     }
@@ -698,7 +698,7 @@ updateSupplier.url = (args: { supplier: string | number | { id: string | number 
 * @see app/Http/Controllers/OperationsController.php:319
 * @route '/operations/master-data/suppliers/{supplier}'
 */
-updateSupplier.put = (args: { supplier: string | number | { id: string | number } } | [supplier: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+updateSupplier.put = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateSupplier.url(args, options),
     method: 'put',
 })
@@ -708,7 +708,7 @@ updateSupplier.put = (args: { supplier: string | number | { id: string | number 
 * @see app/Http/Controllers/OperationsController.php:319
 * @route '/operations/master-data/suppliers/{supplier}'
 */
-const updateSupplierForm = (args: { supplier: string | number | { id: string | number } } | [supplier: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateSupplierForm = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateSupplier.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -723,7 +723,7 @@ const updateSupplierForm = (args: { supplier: string | number | { id: string | n
 * @see app/Http/Controllers/OperationsController.php:319
 * @route '/operations/master-data/suppliers/{supplier}'
 */
-updateSupplierForm.put = (args: { supplier: string | number | { id: string | number } } | [supplier: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateSupplierForm.put = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateSupplier.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -740,7 +740,7 @@ updateSupplier.form = updateSupplierForm
 * @see app/Http/Controllers/OperationsController.php:337
 * @route '/operations/master-data/uoms/{uom}'
 */
-export const updateUom = (args: { uom: string | number | { id: string | number } } | [uom: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+export const updateUom = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateUom.url(args, options),
     method: 'put',
 })
@@ -755,7 +755,7 @@ updateUom.definition = {
 * @see app/Http/Controllers/OperationsController.php:337
 * @route '/operations/master-data/uoms/{uom}'
 */
-updateUom.url = (args: { uom: string | number | { id: string | number } } | [uom: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+updateUom.url = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { uom: args }
     }
@@ -788,7 +788,7 @@ updateUom.url = (args: { uom: string | number | { id: string | number } } | [uom
 * @see app/Http/Controllers/OperationsController.php:337
 * @route '/operations/master-data/uoms/{uom}'
 */
-updateUom.put = (args: { uom: string | number | { id: string | number } } | [uom: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+updateUom.put = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateUom.url(args, options),
     method: 'put',
 })
@@ -798,7 +798,7 @@ updateUom.put = (args: { uom: string | number | { id: string | number } } | [uom
 * @see app/Http/Controllers/OperationsController.php:337
 * @route '/operations/master-data/uoms/{uom}'
 */
-const updateUomForm = (args: { uom: string | number | { id: string | number } } | [uom: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateUomForm = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateUom.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -813,7 +813,7 @@ const updateUomForm = (args: { uom: string | number | { id: string | number } } 
 * @see app/Http/Controllers/OperationsController.php:337
 * @route '/operations/master-data/uoms/{uom}'
 */
-updateUomForm.put = (args: { uom: string | number | { id: string | number } } | [uom: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateUomForm.put = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateUom.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -830,7 +830,7 @@ updateUom.form = updateUomForm
 * @see app/Http/Controllers/OperationsController.php:355
 * @route '/operations/master-data/locations/{location}'
 */
-export const updateLocation = (args: { location: string | number | { id: string | number } } | [location: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+export const updateLocation = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateLocation.url(args, options),
     method: 'put',
 })
@@ -845,7 +845,7 @@ updateLocation.definition = {
 * @see app/Http/Controllers/OperationsController.php:355
 * @route '/operations/master-data/locations/{location}'
 */
-updateLocation.url = (args: { location: string | number | { id: string | number } } | [location: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+updateLocation.url = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { location: args }
     }
@@ -878,7 +878,7 @@ updateLocation.url = (args: { location: string | number | { id: string | number 
 * @see app/Http/Controllers/OperationsController.php:355
 * @route '/operations/master-data/locations/{location}'
 */
-updateLocation.put = (args: { location: string | number | { id: string | number } } | [location: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+updateLocation.put = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateLocation.url(args, options),
     method: 'put',
 })
@@ -888,7 +888,7 @@ updateLocation.put = (args: { location: string | number | { id: string | number 
 * @see app/Http/Controllers/OperationsController.php:355
 * @route '/operations/master-data/locations/{location}'
 */
-const updateLocationForm = (args: { location: string | number | { id: string | number } } | [location: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateLocationForm = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateLocation.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -903,7 +903,7 @@ const updateLocationForm = (args: { location: string | number | { id: string | n
 * @see app/Http/Controllers/OperationsController.php:355
 * @route '/operations/master-data/locations/{location}'
 */
-updateLocationForm.put = (args: { location: string | number | { id: string | number } } | [location: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateLocationForm.put = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateLocation.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -920,7 +920,7 @@ updateLocation.form = updateLocationForm
 * @see app/Http/Controllers/OperationsController.php:374
 * @route '/operations/master-data/items/{item}'
 */
-export const updateItem = (args: { item: string | number | { id: string | number } } | [item: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+export const updateItem = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateItem.url(args, options),
     method: 'put',
 })
@@ -935,7 +935,7 @@ updateItem.definition = {
 * @see app/Http/Controllers/OperationsController.php:374
 * @route '/operations/master-data/items/{item}'
 */
-updateItem.url = (args: { item: string | number | { id: string | number } } | [item: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+updateItem.url = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { item: args }
     }
@@ -968,7 +968,7 @@ updateItem.url = (args: { item: string | number | { id: string | number } } | [i
 * @see app/Http/Controllers/OperationsController.php:374
 * @route '/operations/master-data/items/{item}'
 */
-updateItem.put = (args: { item: string | number | { id: string | number } } | [item: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+updateItem.put = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: updateItem.url(args, options),
     method: 'put',
 })
@@ -978,7 +978,7 @@ updateItem.put = (args: { item: string | number | { id: string | number } } | [i
 * @see app/Http/Controllers/OperationsController.php:374
 * @route '/operations/master-data/items/{item}'
 */
-const updateItemForm = (args: { item: string | number | { id: string | number } } | [item: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateItemForm = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateItem.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -993,7 +993,7 @@ const updateItemForm = (args: { item: string | number | { id: string | number } 
 * @see app/Http/Controllers/OperationsController.php:374
 * @route '/operations/master-data/items/{item}'
 */
-updateItemForm.put = (args: { item: string | number | { id: string | number } } | [item: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateItemForm.put = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: updateItem.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PUT',
@@ -1066,7 +1066,7 @@ stockRequest.form = stockRequestForm
 * @see app/Http/Controllers/OperationsController.php:532
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
-export const prepareStockRequest = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const prepareStockRequest = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: prepareStockRequest.url(args, options),
     method: 'post',
 })
@@ -1081,7 +1081,7 @@ prepareStockRequest.definition = {
 * @see app/Http/Controllers/OperationsController.php:532
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
-prepareStockRequest.url = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+prepareStockRequest.url = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { stockRequest: args }
     }
@@ -1114,7 +1114,7 @@ prepareStockRequest.url = (args: { stockRequest: string | number | { id: string 
 * @see app/Http/Controllers/OperationsController.php:532
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
-prepareStockRequest.post = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+prepareStockRequest.post = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: prepareStockRequest.url(args, options),
     method: 'post',
 })
@@ -1124,7 +1124,7 @@ prepareStockRequest.post = (args: { stockRequest: string | number | { id: string
 * @see app/Http/Controllers/OperationsController.php:532
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
-const prepareStockRequestForm = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const prepareStockRequestForm = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: prepareStockRequest.url(args, options),
     method: 'post',
 })
@@ -1134,7 +1134,7 @@ const prepareStockRequestForm = (args: { stockRequest: string | number | { id: s
 * @see app/Http/Controllers/OperationsController.php:532
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
-prepareStockRequestForm.post = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+prepareStockRequestForm.post = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: prepareStockRequest.url(args, options),
     method: 'post',
 })
@@ -1370,7 +1370,7 @@ opname.form = opnameForm
 * @see app/Http/Controllers/OperationsController.php:683
 * @route '/workflow-approvals/{approval}'
 */
-export const approval = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const approval = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: approval.url(args, options),
     method: 'post',
 })
@@ -1385,7 +1385,7 @@ approval.definition = {
 * @see app/Http/Controllers/OperationsController.php:683
 * @route '/workflow-approvals/{approval}'
 */
-approval.url = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
+approval.url = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { approval: args }
     }
@@ -1418,7 +1418,7 @@ approval.url = (args: { approval: string | number | { id: string | number } } | 
 * @see app/Http/Controllers/OperationsController.php:683
 * @route '/workflow-approvals/{approval}'
 */
-approval.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+approval.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: approval.url(args, options),
     method: 'post',
 })
@@ -1428,7 +1428,7 @@ approval.post = (args: { approval: string | number | { id: string | number } } |
 * @see app/Http/Controllers/OperationsController.php:683
 * @route '/workflow-approvals/{approval}'
 */
-const approvalForm = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const approvalForm = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: approval.url(args, options),
     method: 'post',
 })
@@ -1438,7 +1438,7 @@ const approvalForm = (args: { approval: string | number | { id: string | number 
 * @see app/Http/Controllers/OperationsController.php:683
 * @route '/workflow-approvals/{approval}'
 */
-approvalForm.post = (args: { approval: string | number | { id: string | number } } | [approval: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+approvalForm.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: approval.url(args, options),
     method: 'post',
 })

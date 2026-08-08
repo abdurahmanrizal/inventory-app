@@ -14,6 +14,8 @@ use App\Models\StockLedger;
 use App\Models\StockTransaction;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\InventoryReportExport;
+use App\Services\InventoryReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -38,6 +40,36 @@ class InventoryReportTest extends TestCase
             ->where('data.summary.out', 3)
             ->where('data.summary.closing', 7)
             ->has('data.rows', 2));
+    }
+
+    public function test_stock_ledger_shows_stock_out_reason(): void
+    {
+        $warehouse = Warehouse::create(['code' => 'REP-OUT-REASON', 'name' => 'Gudang Alasan Keluar', 'type' => 'main']);
+        $item = Item::create(['code' => 'REP-OUT-ITEM', 'name' => 'Item Keluar', 'base_uom' => 'PCS']);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin]);
+        $transaction = StockTransaction::create([
+            'number' => 'OUT-REASON-001', 'type' => TransactionType::StockOut,
+            'stock_out_reason' => 'waste', 'source_warehouse_id' => $warehouse->id,
+            'document_date' => now(), 'status' => TransactionStatus::Completed, 'created_by' => $admin->id,
+        ]);
+        StockLedger::create([
+            'stock_transaction_id' => $transaction->id, 'reference_type' => 'stock_transaction',
+            'reference_id' => $transaction->id, 'warehouse_id' => $warehouse->id, 'item_id' => $item->id,
+            'direction' => 'out', 'qty' => 2, 'unit_cost' => 1000, 'balance_qty' => 3,
+            'balance_cost' => 1000, 'created_by' => $admin->id, 'created_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get('/reports?report=ledger&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.rows.0.reference', 'OUT-REASON-001')
+            ->where('data.rows.0.movement_note', 'Waste / terbuang'));
+
+        $data = app(InventoryReportService::class)->stockLedger(collect([$warehouse->id]), $warehouse->id, [
+            'date_from' => now()->format('Y-m-d'), 'date_to' => now()->format('Y-m-d'),
+        ]);
+        [$headers, $rows] = app(InventoryReportExport::class)->table('ledger', $data);
+        $this->assertContains('Keterangan Pengeluaran', $headers);
+        $this->assertSame('Waste / terbuang', $rows[1][3]);
     }
 
     public function test_manager_report_is_limited_to_assigned_warehouse(): void
@@ -143,6 +175,17 @@ class InventoryReportTest extends TestCase
             ->where('data.rows.0.approved_by_name', $manager->name));
 
         $this->actingAs($admin)->get('/reports/export/xlsx?report=purchase-history&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))->assertOk();
+        $this->actingAs($admin)->get('/reports/export/pdf?report=purchase-history&date_from='.now()->format('Y-m-d').'&date_to='.now()->format('Y-m-d'))->assertOk();
+
+        $reportData = app(InventoryReportService::class)->purchaseHistory(
+            collect([$warehouse->id]),
+            $warehouse->id,
+            ['date_from' => now()->format('Y-m-d'), 'date_to' => now()->format('Y-m-d')],
+        );
+        [, $exportRows] = app(InventoryReportExport::class)->table('purchase-history', $reportData);
+        $this->assertSame('subtotal', $exportRows[array_key_last($exportRows)]['_type']);
+        $this->assertSame('GRAND TOTAL', $exportRows[array_key_last($exportRows)]['cells'][0]);
+        $this->assertSame(660.0, $exportRows[array_key_last($exportRows)]['cells'][9]);
     }
 
     public function test_cost_history_calculates_cost_before_and_after(): void
@@ -213,7 +256,7 @@ class InventoryReportTest extends TestCase
         $this->assertStringContainsString('EXP-ITEM', $sharedStrings);
         $this->assertStringContainsString('Gudang Export', $sharedStrings);
         $this->assertStringContainsString('Subtotal EXP-ITEM - Item Export', $sharedStrings);
-        $this->assertStringContainsString('<mergeCell ref="A7:I7"/>', $sheet);
+        $this->assertStringContainsString('<mergeCell ref="A7:J7"/>', $sheet);
     }
 
     private function ledger(Warehouse $warehouse, Item $item, User $creator, string $direction, float $qty, $date): void

@@ -27,6 +27,7 @@ const stockOutReasonLabels = {
   damaged: "Barang Rusak",
   waste: "Waste / Terbuang",
   return: "Retur",
+  restitution: "Pengembalian",
   other: "Lainnya",
 };
 

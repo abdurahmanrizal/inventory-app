@@ -50,6 +50,25 @@ class InventoryValuationTest extends TestCase
         $this->assertSame([100.0, 200.0], StockLedger::where('direction', 'out')->orderBy('id')->get()->map(fn ($ledger) => (float) $ledger->unit_cost)->all());
     }
 
+    public function test_issue_cost_estimate_follows_active_valuation_method(): void
+    {
+        [$warehouse, $item, $user] = $this->valuationFixtures('ESTIMATE-COST');
+        $valuation = app(InventoryValuationService::class);
+        $valuation->receive($warehouse->id, $item->id, 10, 100, null, null, null, null, 'test', 1, $user->id);
+        $valuation->receive($warehouse->id, $item->id, 10, 200, null, null, null, null, 'test', 2, $user->id);
+
+        $this->assertSame(150.0, $valuation->estimatedIssueUnitCost($warehouse->id, $item->id, 12));
+
+        InventorySetting::current()->forceFill(['locked_at' => null])->save();
+        InventorySetting::current()->update(['valuation_method' => InventoryValuationMethod::Fifo]);
+        StockCostLayer::query()->delete();
+        CurrentStock::query()->delete();
+        $valuation->receive($warehouse->id, $item->id, 10, 100, null, null, null, null, 'test', 3, $user->id);
+        $valuation->receive($warehouse->id, $item->id, 10, 200, null, null, null, null, 'test', 4, $user->id);
+
+        $this->assertEqualsWithDelta(116.6667, $valuation->estimatedIssueUnitCost($warehouse->id, $item->id, 12), 0.0001);
+    }
+
     public function test_fifo_adjustment_uses_entered_inbound_cost_and_snapshots_actual_outbound_cost(): void
     {
         $warehouse = Warehouse::create(['code' => 'FIFO-ADJ', 'name' => 'FIFO Adjustment', 'type' => 'main']);

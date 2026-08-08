@@ -80,7 +80,7 @@ class InventoryReportService
             ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'out' THEN qty * unit_cost ELSE 0 END), 0) AS value_out")
             ->first();
 
-        $rows = (clone $base)->with(['warehouse:id,code,name', 'item:id,code,name,base_uom', 'creator:id,name', 'stockTransaction:id,number,type'])
+        $rows = (clone $base)->with(['warehouse:id,code,name', 'item:id,code,name,base_uom', 'creator:id,name', 'stockTransaction:id,number,type,request_kind,stock_out_reason'])
             ->whereBetween('created_at', [$from, $to])->oldest('created_at')->oldest('id')->limit(500)->get()
             ->map(function (StockLedger $ledger) {
                 $qtyIn = $ledger->direction === 'in' ? (float) $ledger->qty : 0;
@@ -92,6 +92,7 @@ class InventoryReportService
                     'warehouse' => $ledger->warehouse,
                     'item' => $ledger->item,
                     'reference' => $ledger->stockTransaction?->number ?? ($ledger->reference_type ? ucfirst(str_replace('_', ' ', $ledger->reference_type)).' #'.$ledger->reference_id : '-'),
+                    'movement_note' => $this->stockLedgerMovementNote($ledger),
                     'batch_no' => $ledger->batch_no,
                     'qty_in' => $qtyIn,
                     'qty_out' => $qtyOut,
@@ -115,6 +116,31 @@ class InventoryReportService
             ],
             'limited' => $rows->count() === 500,
         ];
+    }
+
+    private function stockLedgerMovementNote(StockLedger $ledger): string
+    {
+        $transaction = $ledger->stockTransaction;
+        if ($ledger->direction !== 'out' || ! $transaction) {
+            return '-';
+        }
+        if ($transaction->request_kind === 'unit_return') {
+            return 'Pengembalian ke gudang utama';
+        }
+        if ($transaction->type->value !== 'stock_out') {
+            return '-';
+        }
+
+        return [
+            'operational' => 'Pemakaian operasional',
+            'waste' => 'Waste / terbuang',
+            'return' => 'Retur ke supplier',
+            'restitution' => 'Pengembalian',
+            'shrinkage' => 'Penyusutan',
+            'expired' => 'Kedaluwarsa',
+            'damaged' => 'Barang rusak',
+            'other' => 'Lainnya',
+        ][$transaction->stock_out_reason] ?? 'Jenis pengeluaran tidak dicantumkan';
     }
 
     public function slowMoving(Collection $warehouseIds, ?int $warehouseId, int $days): array
@@ -386,40 +412,47 @@ class InventoryReportService
     public function purchaseHistory(Collection $warehouseIds, ?int $warehouseId, array $filters): array
     {
         $query = DB::table('stock_transaction_details as detail')
-            ->join('stock_transactions as transaction', 'transaction.id', '=', 'detail.stock_transaction_id')
-            ->join('warehouses as warehouse', 'warehouse.id', '=', 'transaction.destination_warehouse_id')
+            ->join('stock_transactions as stock_tx', 'stock_tx.id', '=', 'detail.stock_transaction_id')
+            ->join('warehouses as warehouse', 'warehouse.id', '=', 'stock_tx.destination_warehouse_id')
             ->join('items as item', 'item.id', '=', 'detail.item_id')
-            ->join('users as creator', 'creator.id', '=', 'transaction.created_by')
-            ->join('users as approver', 'approver.id', '=', 'transaction.approved_by')
-            ->where('transaction.type', 'stock_in')
-            ->where('transaction.request_kind', 'supplier_receipt')
-            ->where('transaction.status', 'completed')
-            ->whereNotNull('transaction.approved_at')
-            ->whereNotNull('transaction.posted_at')
-            ->whereIn('transaction.destination_warehouse_id', $warehouseIds)
-            ->when($warehouseId, fn ($builder) => $builder->where('transaction.destination_warehouse_id', $warehouseId))
+            ->join('users as creator', 'creator.id', '=', 'stock_tx.created_by')
+            ->join('users as approver', 'approver.id', '=', 'stock_tx.approved_by')
+            ->where('stock_tx.type', 'stock_in')
+            ->where('stock_tx.request_kind', 'supplier_receipt')
+            ->where('stock_tx.status', 'completed')
+            ->whereNotNull('stock_tx.approved_at')
+            ->whereNotNull('stock_tx.posted_at')
+            ->whereIn('stock_tx.destination_warehouse_id', $warehouseIds)
+            ->when($warehouseId, fn ($builder) => $builder->where('stock_tx.destination_warehouse_id', $warehouseId))
             ->when($filters['item_id'] ?? null, fn ($builder, $id) => $builder->where('detail.item_id', $id))
             ->when($filters['batch_no'] ?? null, fn ($builder, $batch) => $builder->where('detail.batch_no', 'like', '%'.$batch.'%'))
-            ->when($filters['supplier_name'] ?? null, fn ($builder, $supplier) => $builder->where('transaction.supplier_name', 'like', '%'.trim($supplier).'%'))
+            ->when($filters['supplier_name'] ?? null, fn ($builder, $supplier) => $builder->where('stock_tx.supplier_name', 'like', '%'.trim($supplier).'%'))
             ->when($filters['search'] ?? null, function ($builder, $search) {
                 $term = '%'.trim($search).'%';
                 $builder->where(fn ($nested) => $nested
-                    ->where('transaction.number', 'like', $term)
-                    ->orWhere('transaction.supplier_name', 'like', $term)
+                    ->where('stock_tx.number', 'like', $term)
+                    ->orWhere('stock_tx.supplier_name', 'like', $term)
                     ->orWhere('item.code', 'like', $term)
                     ->orWhere('item.name', 'like', $term));
             })
-            ->whereDate('transaction.document_date', '>=', $filters['date_from'])
-            ->whereDate('transaction.document_date', '<=', $filters['date_to']);
+            ->whereDate('stock_tx.document_date', '>=', $filters['date_from'])
+            ->whereDate('stock_tx.document_date', '<=', $filters['date_to']);
+
+        $summary = (clone $query)
+            ->selectRaw('COUNT(DISTINCT stock_tx.id) as transactions')
+            ->selectRaw('COUNT(DISTINCT stock_tx.supplier_name) as suppliers')
+            ->selectRaw('COALESCE(SUM(detail.qty), 0) as qty')
+            ->selectRaw('COALESCE(SUM(detail.qty * detail.unit_cost), 0) as total_value')
+            ->first();
 
         $rows = (clone $query)->select([
-            'detail.id as detail_id', 'transaction.id as transaction_id', 'transaction.number as transaction_number',
-            'transaction.document_date', 'transaction.supplier_name', 'transaction.approved_at', 'transaction.posted_at',
+            'detail.id as detail_id', 'stock_tx.id as transaction_id', 'stock_tx.number as transaction_number',
+            'stock_tx.document_date', 'stock_tx.supplier_name', 'stock_tx.approved_at', 'stock_tx.posted_at',
             'warehouse.code as warehouse_code', 'warehouse.name as warehouse_name',
             'item.id as item_id', 'item.code as item_code', 'item.name as item_name', 'item.base_uom',
             'detail.qty', 'detail.unit_cost', 'detail.batch_no', 'detail.expired_at',
             'creator.name as created_by_name', 'approver.name as approved_by_name',
-        ])->orderByDesc('transaction.posted_at')->orderByDesc('transaction.id')->orderBy('detail.id')->limit(1000)->get();
+        ])->orderByDesc('stock_tx.posted_at')->orderByDesc('stock_tx.id')->orderBy('detail.id')->limit(1000)->get();
 
         $layerIds = StockCostLayer::query()
             ->where('reference_type', 'stock_transaction')
@@ -446,10 +479,10 @@ class InventoryReportService
         return [
             'rows' => $mapped,
             'summary' => [
-                'transactions' => $mapped->pluck('transaction_id')->unique()->count(),
-                'suppliers' => $mapped->pluck('supplier_name')->filter()->unique()->count(),
-                'qty' => $mapped->sum('qty'),
-                'totalValue' => $mapped->sum('total_value'),
+                'transactions' => (int) $summary->transactions,
+                'suppliers' => (int) $summary->suppliers,
+                'qty' => (float) $summary->qty,
+                'totalValue' => (float) $summary->total_value,
             ],
             'valuation_method' => InventorySetting::current()->valuation_method->value,
             'limited' => $mapped->count() === 1000,

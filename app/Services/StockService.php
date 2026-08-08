@@ -74,7 +74,8 @@ class StockService
             $this->valuation->receive(
                 $tx->destination_warehouse_id, $detail->item_id, $allocation['qty'], $allocation['unit_cost'],
                 $allocation['batch_no'], $allocation['expired_at'], null, null,
-                'stock_transaction', $tx->id, $userId, $tx->id,
+                'stock_transaction', $tx->id, $userId, $tx->id, false,
+                $allocation['source_received_at'], $allocation['source_cost_layer_id'],
             );
         }
     }

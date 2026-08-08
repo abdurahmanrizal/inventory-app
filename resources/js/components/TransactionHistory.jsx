@@ -45,6 +45,10 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                   transaction.status,
                   statusStyles.draft[1],
                 ];
+                const movementSource =
+                  transaction.type === "stock_in"
+                    ? transaction.supplier_name?.trim() || "Eksternal"
+                    : transaction.source_warehouse?.name || "Eksternal";
                 return (
                   <tr
                     key={transaction.id}
@@ -76,7 +80,7 @@ export default function TransactionHistory({ transactions, title, emptyText }) {
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
                       <span>
-                        {transaction.source_warehouse?.name || "Eksternal"}
+                        {movementSource}
                       </span>
                       <ArrowRight
                         size={13}

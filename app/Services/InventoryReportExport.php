@@ -96,6 +96,9 @@ class InventoryReportExport
                     $row['total_value'], $row['created_by_name'], $row['approved_by_name'], $row['approved_at'], $row['posted_at'],
                     $row['valuation_method'] === 'fifo' ? 'FIFO' : 'Moving Average',
                     $row['fifo_layer_ids'] ? collect($row['fifo_layer_ids'])->map(fn ($id) => '#'.$id)->join(', ') : '-',
+                ])->push([
+                    '_type' => 'subtotal',
+                    'cells' => ['GRAND TOTAL', '', '', '', '', '', '', $data['summary']['qty'], '', $data['summary']['totalValue'], '', '', '', '', '', ''],
                 ])->all(),
             ],
             'slow-moving' => [
@@ -184,11 +187,11 @@ class InventoryReportExport
                 $itemLabel = data_get($first, 'item.code').' - '.data_get($first, 'item.name')
                     .' ('.data_get($first, 'item.base_uom', '-').')';
                 $detailRows = $group->map(fn ($row) => [
-                    $row['date'], data_get($row, 'warehouse.name'), $row['reference'], $row['batch_no'] ?: '-',
+                    $row['date'], data_get($row, 'warehouse.name'), $row['reference'], $row['movement_note'] ?? '-', $row['batch_no'] ?: '-',
                     $row['qty_in'], $row['qty_out'], $row['balance_qty'], $row['unit_cost'], $row['creator'] ?: '-',
                 ]);
                 $subtotal = [
-                    'Subtotal '.$itemLabel, '', '', '',
+                    'Subtotal '.$itemLabel, '', '', '', '',
                     $group->sum('qty_in'), $group->sum('qty_out'), $group->last()['balance_qty'], '', '',
                 ];
 
@@ -200,7 +203,7 @@ class InventoryReportExport
             })->values()->all();
 
         return [
-            ['Tanggal', 'Gudang', 'Referensi', 'Batch', 'Qty Masuk', 'Qty Keluar', 'Saldo Akhir', 'HPP', 'Dibuat Oleh'],
+            ['Tanggal', 'Gudang', 'Referensi', 'Keterangan Pengeluaran', 'Batch', 'Qty Masuk', 'Qty Keluar', 'Saldo Akhir', 'HPP', 'Dibuat Oleh'],
             $rows,
         ];
     }
