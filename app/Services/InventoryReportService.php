@@ -765,9 +765,15 @@ class InventoryReportService
                 ->when($warehouseId, fn (Builder $query) => $query->where('warehouse_id', $warehouseId))
                 ->selectRaw("warehouse_id, item_id, COALESCE(batch_no, '') as batch_key, SUM(remaining_qty) as layer_qty")
                 ->groupBy('warehouse_id', 'item_id', 'batch_key')->get();
+            $stocksByKey = collect();
+            foreach ((clone $stockQuery)->get() as $stock) {
+                $key = $stock->warehouse_id.'|'.$stock->item_id.'|'.($stock->batch_no ?? '');
+                if (! $stocksByKey->has($key)) {
+                    $stocksByKey->put($key, $stock);
+                }
+            }
             foreach ($layerBalances as $balance) {
-                $stock = (clone $stockQuery)->where('warehouse_id', $balance->warehouse_id)->where('item_id', $balance->item_id)
-                    ->where('batch_no', $balance->batch_key === '' ? null : $balance->batch_key)->first();
+                $stock = $stocksByKey->get($balance->warehouse_id.'|'.$balance->item_id.'|'.$balance->batch_key);
                 if (! $stock || abs((float) $balance->layer_qty - (float) $stock->qty_on_hand) > 0.001) {
                     $rows->push([
                         'id' => 'layer-'.$balance->warehouse_id.'-'.$balance->item_id.'-'.$balance->batch_key,
