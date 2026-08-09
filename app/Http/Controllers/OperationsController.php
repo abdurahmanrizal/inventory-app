@@ -258,9 +258,13 @@ class OperationsController extends Controller
 
                 return $query->where(fn ($q) => $q->where('to_warehouse_id', $user->warehouse_id)->orWhere('from_warehouse_id', $user->warehouse_id));
             })->latest()->limit(30)->get();
-        $stockRequests->each(function (StockRequest $stockRequest) {
-            $approval = WorkflowApproval::with(['steps' => fn ($query) => $query->with(['approver:id,name', 'actor:id,name'])->orderBy('level')])
-                ->where('module', 'stock_request')->where('transaction_id', $stockRequest->id)->first();
+        $approvals = WorkflowApproval::with(['steps' => fn ($query) => $query->with(['approver:id,name', 'actor:id,name'])->orderBy('level')])
+            ->where('module', 'stock_request')
+            ->whereIn('transaction_id', $stockRequests->pluck('id'))
+            ->get()
+            ->keyBy('transaction_id');
+        $stockRequests->each(function (StockRequest $stockRequest) use ($approvals) {
+            $approval = $approvals->get($stockRequest->id);
             $stockRequest->setAttribute('approval_level', $approval?->current_level);
             $stockRequest->setAttribute('unit_approved', $approval?->steps->firstWhere('stage_key', 'unit_manager')?->status === 'approved');
             $stockRequest->setAttribute('approval', $approval);

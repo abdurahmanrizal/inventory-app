@@ -286,7 +286,7 @@ deliveryNote.form = deliveryNoteForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::supplier
-* @see app/Http/Controllers/OperationsController.php:311
+* @see app/Http/Controllers/OperationsController.php:315
 * @route '/operations/master-data/suppliers'
 */
 export const supplier = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -301,7 +301,7 @@ supplier.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::supplier
-* @see app/Http/Controllers/OperationsController.php:311
+* @see app/Http/Controllers/OperationsController.php:315
 * @route '/operations/master-data/suppliers'
 */
 supplier.url = (options?: RouteQueryOptions) => {
@@ -310,7 +310,7 @@ supplier.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::supplier
-* @see app/Http/Controllers/OperationsController.php:311
+* @see app/Http/Controllers/OperationsController.php:315
 * @route '/operations/master-data/suppliers'
 */
 supplier.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -320,7 +320,7 @@ supplier.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::supplier
-* @see app/Http/Controllers/OperationsController.php:311
+* @see app/Http/Controllers/OperationsController.php:315
 * @route '/operations/master-data/suppliers'
 */
 const supplierForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -330,7 +330,7 @@ const supplierForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\OperationsController::supplier
-* @see app/Http/Controllers/OperationsController.php:311
+* @see app/Http/Controllers/OperationsController.php:315
 * @route '/operations/master-data/suppliers'
 */
 supplierForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -342,7 +342,7 @@ supplier.form = supplierForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::uom
-* @see app/Http/Controllers/OperationsController.php:329
+* @see app/Http/Controllers/OperationsController.php:333
 * @route '/operations/master-data/uoms'
 */
 export const uom = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -357,7 +357,7 @@ uom.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::uom
-* @see app/Http/Controllers/OperationsController.php:329
+* @see app/Http/Controllers/OperationsController.php:333
 * @route '/operations/master-data/uoms'
 */
 uom.url = (options?: RouteQueryOptions) => {
@@ -366,7 +366,7 @@ uom.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::uom
-* @see app/Http/Controllers/OperationsController.php:329
+* @see app/Http/Controllers/OperationsController.php:333
 * @route '/operations/master-data/uoms'
 */
 uom.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -376,7 +376,7 @@ uom.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::uom
-* @see app/Http/Controllers/OperationsController.php:329
+* @see app/Http/Controllers/OperationsController.php:333
 * @route '/operations/master-data/uoms'
 */
 const uomForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -386,7 +386,7 @@ const uomForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::uom
-* @see app/Http/Controllers/OperationsController.php:329
+* @see app/Http/Controllers/OperationsController.php:333
 * @route '/operations/master-data/uoms'
 */
 uomForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -398,7 +398,7 @@ uom.form = uomForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::location
-* @see app/Http/Controllers/OperationsController.php:347
+* @see app/Http/Controllers/OperationsController.php:351
 * @route '/operations/master-data/locations'
 */
 export const location = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -413,7 +413,7 @@ location.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::location
-* @see app/Http/Controllers/OperationsController.php:347
+* @see app/Http/Controllers/OperationsController.php:351
 * @route '/operations/master-data/locations'
 */
 location.url = (options?: RouteQueryOptions) => {
@@ -422,7 +422,7 @@ location.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::location
-* @see app/Http/Controllers/OperationsController.php:347
+* @see app/Http/Controllers/OperationsController.php:351
 * @route '/operations/master-data/locations'
 */
 location.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -432,7 +432,7 @@ location.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::location
-* @see app/Http/Controllers/OperationsController.php:347
+* @see app/Http/Controllers/OperationsController.php:351
 * @route '/operations/master-data/locations'
 */
 const locationForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -442,7 +442,7 @@ const locationForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\OperationsController::location
-* @see app/Http/Controllers/OperationsController.php:347
+* @see app/Http/Controllers/OperationsController.php:351
 * @route '/operations/master-data/locations'
 */
 locationForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -454,7 +454,7 @@ location.form = locationForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::item
-* @see app/Http/Controllers/OperationsController.php:365
+* @see app/Http/Controllers/OperationsController.php:369
 * @route '/operations/master-data/items'
 */
 export const item = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -469,7 +469,7 @@ item.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::item
-* @see app/Http/Controllers/OperationsController.php:365
+* @see app/Http/Controllers/OperationsController.php:369
 * @route '/operations/master-data/items'
 */
 item.url = (options?: RouteQueryOptions) => {
@@ -478,7 +478,7 @@ item.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::item
-* @see app/Http/Controllers/OperationsController.php:365
+* @see app/Http/Controllers/OperationsController.php:369
 * @route '/operations/master-data/items'
 */
 item.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -488,7 +488,7 @@ item.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::item
-* @see app/Http/Controllers/OperationsController.php:365
+* @see app/Http/Controllers/OperationsController.php:369
 * @route '/operations/master-data/items'
 */
 const itemForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -498,7 +498,7 @@ const itemForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => (
 
 /**
 * @see \App\Http\Controllers\OperationsController::item
-* @see app/Http/Controllers/OperationsController.php:365
+* @see app/Http/Controllers/OperationsController.php:369
 * @route '/operations/master-data/items'
 */
 itemForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -510,7 +510,7 @@ item.form = itemForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::importItems
-* @see app/Http/Controllers/OperationsController.php:385
+* @see app/Http/Controllers/OperationsController.php:389
 * @route '/operations/master-data/items/import'
 */
 export const importItems = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -525,7 +525,7 @@ importItems.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importItems
-* @see app/Http/Controllers/OperationsController.php:385
+* @see app/Http/Controllers/OperationsController.php:389
 * @route '/operations/master-data/items/import'
 */
 importItems.url = (options?: RouteQueryOptions) => {
@@ -534,7 +534,7 @@ importItems.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importItems
-* @see app/Http/Controllers/OperationsController.php:385
+* @see app/Http/Controllers/OperationsController.php:389
 * @route '/operations/master-data/items/import'
 */
 importItems.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -544,7 +544,7 @@ importItems.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::importItems
-* @see app/Http/Controllers/OperationsController.php:385
+* @see app/Http/Controllers/OperationsController.php:389
 * @route '/operations/master-data/items/import'
 */
 const importItemsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -554,7 +554,7 @@ const importItemsForm = (options?: RouteQueryOptions): RouteFormDefinition<'post
 
 /**
 * @see \App\Http\Controllers\OperationsController::importItems
-* @see app/Http/Controllers/OperationsController.php:385
+* @see app/Http/Controllers/OperationsController.php:389
 * @route '/operations/master-data/items/import'
 */
 importItemsForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -566,7 +566,7 @@ importItems.form = importItemsForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 export const itemImportTemplate = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -581,7 +581,7 @@ itemImportTemplate.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 itemImportTemplate.url = (options?: RouteQueryOptions) => {
@@ -590,7 +590,7 @@ itemImportTemplate.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 itemImportTemplate.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -600,7 +600,7 @@ itemImportTemplate.get = (options?: RouteQueryOptions): RouteDefinition<'get'> =
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 itemImportTemplate.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -610,7 +610,7 @@ itemImportTemplate.head = (options?: RouteQueryOptions): RouteDefinition<'head'>
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 const itemImportTemplateForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -620,7 +620,7 @@ const itemImportTemplateForm = (options?: RouteQueryOptions): RouteFormDefinitio
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 itemImportTemplateForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -630,7 +630,7 @@ itemImportTemplateForm.get = (options?: RouteQueryOptions): RouteFormDefinition<
 
 /**
 * @see \App\Http\Controllers\OperationsController::itemImportTemplate
-* @see app/Http/Controllers/OperationsController.php:461
+* @see app/Http/Controllers/OperationsController.php:465
 * @route '/operations/master-data/items/import-template'
 */
 itemImportTemplateForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -647,7 +647,7 @@ itemImportTemplate.form = itemImportTemplateForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateSupplier
-* @see app/Http/Controllers/OperationsController.php:320
+* @see app/Http/Controllers/OperationsController.php:324
 * @route '/operations/master-data/suppliers/{supplier}'
 */
 export const updateSupplier = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -662,7 +662,7 @@ updateSupplier.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateSupplier
-* @see app/Http/Controllers/OperationsController.php:320
+* @see app/Http/Controllers/OperationsController.php:324
 * @route '/operations/master-data/suppliers/{supplier}'
 */
 updateSupplier.url = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -695,7 +695,7 @@ updateSupplier.url = (args: { supplier: number | { id: number } } | [supplier: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateSupplier
-* @see app/Http/Controllers/OperationsController.php:320
+* @see app/Http/Controllers/OperationsController.php:324
 * @route '/operations/master-data/suppliers/{supplier}'
 */
 updateSupplier.put = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -705,7 +705,7 @@ updateSupplier.put = (args: { supplier: number | { id: number } } | [supplier: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateSupplier
-* @see app/Http/Controllers/OperationsController.php:320
+* @see app/Http/Controllers/OperationsController.php:324
 * @route '/operations/master-data/suppliers/{supplier}'
 */
 const updateSupplierForm = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -720,7 +720,7 @@ const updateSupplierForm = (args: { supplier: number | { id: number } } | [suppl
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateSupplier
-* @see app/Http/Controllers/OperationsController.php:320
+* @see app/Http/Controllers/OperationsController.php:324
 * @route '/operations/master-data/suppliers/{supplier}'
 */
 updateSupplierForm.put = (args: { supplier: number | { id: number } } | [supplier: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -737,7 +737,7 @@ updateSupplier.form = updateSupplierForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateUom
-* @see app/Http/Controllers/OperationsController.php:338
+* @see app/Http/Controllers/OperationsController.php:342
 * @route '/operations/master-data/uoms/{uom}'
 */
 export const updateUom = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -752,7 +752,7 @@ updateUom.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateUom
-* @see app/Http/Controllers/OperationsController.php:338
+* @see app/Http/Controllers/OperationsController.php:342
 * @route '/operations/master-data/uoms/{uom}'
 */
 updateUom.url = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -785,7 +785,7 @@ updateUom.url = (args: { uom: number | { id: number } } | [uom: number | { id: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateUom
-* @see app/Http/Controllers/OperationsController.php:338
+* @see app/Http/Controllers/OperationsController.php:342
 * @route '/operations/master-data/uoms/{uom}'
 */
 updateUom.put = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -795,7 +795,7 @@ updateUom.put = (args: { uom: number | { id: number } } | [uom: number | { id: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateUom
-* @see app/Http/Controllers/OperationsController.php:338
+* @see app/Http/Controllers/OperationsController.php:342
 * @route '/operations/master-data/uoms/{uom}'
 */
 const updateUomForm = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -810,7 +810,7 @@ const updateUomForm = (args: { uom: number | { id: number } } | [uom: number | {
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateUom
-* @see app/Http/Controllers/OperationsController.php:338
+* @see app/Http/Controllers/OperationsController.php:342
 * @route '/operations/master-data/uoms/{uom}'
 */
 updateUomForm.put = (args: { uom: number | { id: number } } | [uom: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -827,7 +827,7 @@ updateUom.form = updateUomForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateLocation
-* @see app/Http/Controllers/OperationsController.php:356
+* @see app/Http/Controllers/OperationsController.php:360
 * @route '/operations/master-data/locations/{location}'
 */
 export const updateLocation = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -842,7 +842,7 @@ updateLocation.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateLocation
-* @see app/Http/Controllers/OperationsController.php:356
+* @see app/Http/Controllers/OperationsController.php:360
 * @route '/operations/master-data/locations/{location}'
 */
 updateLocation.url = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -875,7 +875,7 @@ updateLocation.url = (args: { location: number | { id: number } } | [location: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateLocation
-* @see app/Http/Controllers/OperationsController.php:356
+* @see app/Http/Controllers/OperationsController.php:360
 * @route '/operations/master-data/locations/{location}'
 */
 updateLocation.put = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -885,7 +885,7 @@ updateLocation.put = (args: { location: number | { id: number } } | [location: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateLocation
-* @see app/Http/Controllers/OperationsController.php:356
+* @see app/Http/Controllers/OperationsController.php:360
 * @route '/operations/master-data/locations/{location}'
 */
 const updateLocationForm = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -900,7 +900,7 @@ const updateLocationForm = (args: { location: number | { id: number } } | [locat
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateLocation
-* @see app/Http/Controllers/OperationsController.php:356
+* @see app/Http/Controllers/OperationsController.php:360
 * @route '/operations/master-data/locations/{location}'
 */
 updateLocationForm.put = (args: { location: number | { id: number } } | [location: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -917,7 +917,7 @@ updateLocation.form = updateLocationForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateItem
-* @see app/Http/Controllers/OperationsController.php:375
+* @see app/Http/Controllers/OperationsController.php:379
 * @route '/operations/master-data/items/{item}'
 */
 export const updateItem = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -932,7 +932,7 @@ updateItem.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateItem
-* @see app/Http/Controllers/OperationsController.php:375
+* @see app/Http/Controllers/OperationsController.php:379
 * @route '/operations/master-data/items/{item}'
 */
 updateItem.url = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -965,7 +965,7 @@ updateItem.url = (args: { item: number | { id: number } } | [item: number | { id
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateItem
-* @see app/Http/Controllers/OperationsController.php:375
+* @see app/Http/Controllers/OperationsController.php:379
 * @route '/operations/master-data/items/{item}'
 */
 updateItem.put = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -975,7 +975,7 @@ updateItem.put = (args: { item: number | { id: number } } | [item: number | { id
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateItem
-* @see app/Http/Controllers/OperationsController.php:375
+* @see app/Http/Controllers/OperationsController.php:379
 * @route '/operations/master-data/items/{item}'
 */
 const updateItemForm = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -990,7 +990,7 @@ const updateItemForm = (args: { item: number | { id: number } } | [item: number 
 
 /**
 * @see \App\Http\Controllers\OperationsController::updateItem
-* @see app/Http/Controllers/OperationsController.php:375
+* @see app/Http/Controllers/OperationsController.php:379
 * @route '/operations/master-data/items/{item}'
 */
 updateItemForm.put = (args: { item: number | { id: number } } | [item: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1007,7 +1007,7 @@ updateItem.form = updateItemForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::stockRequest
-* @see app/Http/Controllers/OperationsController.php:472
+* @see app/Http/Controllers/OperationsController.php:476
 * @route '/operations/fulfillment/requests'
 */
 export const stockRequest = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1022,7 +1022,7 @@ stockRequest.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::stockRequest
-* @see app/Http/Controllers/OperationsController.php:472
+* @see app/Http/Controllers/OperationsController.php:476
 * @route '/operations/fulfillment/requests'
 */
 stockRequest.url = (options?: RouteQueryOptions) => {
@@ -1031,7 +1031,7 @@ stockRequest.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::stockRequest
-* @see app/Http/Controllers/OperationsController.php:472
+* @see app/Http/Controllers/OperationsController.php:476
 * @route '/operations/fulfillment/requests'
 */
 stockRequest.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1041,7 +1041,7 @@ stockRequest.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::stockRequest
-* @see app/Http/Controllers/OperationsController.php:472
+* @see app/Http/Controllers/OperationsController.php:476
 * @route '/operations/fulfillment/requests'
 */
 const stockRequestForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1051,7 +1051,7 @@ const stockRequestForm = (options?: RouteQueryOptions): RouteFormDefinition<'pos
 
 /**
 * @see \App\Http\Controllers\OperationsController::stockRequest
-* @see app/Http/Controllers/OperationsController.php:472
+* @see app/Http/Controllers/OperationsController.php:476
 * @route '/operations/fulfillment/requests'
 */
 stockRequestForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1063,7 +1063,7 @@ stockRequest.form = stockRequestForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::prepareStockRequest
-* @see app/Http/Controllers/OperationsController.php:534
+* @see app/Http/Controllers/OperationsController.php:538
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
 export const prepareStockRequest = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1078,7 +1078,7 @@ prepareStockRequest.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::prepareStockRequest
-* @see app/Http/Controllers/OperationsController.php:534
+* @see app/Http/Controllers/OperationsController.php:538
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
 prepareStockRequest.url = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -1111,7 +1111,7 @@ prepareStockRequest.url = (args: { stockRequest: number | { id: number } } | [st
 
 /**
 * @see \App\Http\Controllers\OperationsController::prepareStockRequest
-* @see app/Http/Controllers/OperationsController.php:534
+* @see app/Http/Controllers/OperationsController.php:538
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
 prepareStockRequest.post = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1121,7 +1121,7 @@ prepareStockRequest.post = (args: { stockRequest: number | { id: number } } | [s
 
 /**
 * @see \App\Http\Controllers\OperationsController::prepareStockRequest
-* @see app/Http/Controllers/OperationsController.php:534
+* @see app/Http/Controllers/OperationsController.php:538
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
 const prepareStockRequestForm = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1131,7 +1131,7 @@ const prepareStockRequestForm = (args: { stockRequest: number | { id: number } }
 
 /**
 * @see \App\Http\Controllers\OperationsController::prepareStockRequest
-* @see app/Http/Controllers/OperationsController.php:534
+* @see app/Http/Controllers/OperationsController.php:538
 * @route '/operations/fulfillment/requests/{stockRequest}/prepare'
 */
 prepareStockRequestForm.post = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1143,7 +1143,7 @@ prepareStockRequest.form = prepareStockRequestForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::delivery
-* @see app/Http/Controllers/OperationsController.php:543
+* @see app/Http/Controllers/OperationsController.php:547
 * @route '/operations/fulfillment/deliveries'
 */
 export const delivery = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1158,7 +1158,7 @@ delivery.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::delivery
-* @see app/Http/Controllers/OperationsController.php:543
+* @see app/Http/Controllers/OperationsController.php:547
 * @route '/operations/fulfillment/deliveries'
 */
 delivery.url = (options?: RouteQueryOptions) => {
@@ -1167,7 +1167,7 @@ delivery.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::delivery
-* @see app/Http/Controllers/OperationsController.php:543
+* @see app/Http/Controllers/OperationsController.php:547
 * @route '/operations/fulfillment/deliveries'
 */
 delivery.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1177,7 +1177,7 @@ delivery.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::delivery
-* @see app/Http/Controllers/OperationsController.php:543
+* @see app/Http/Controllers/OperationsController.php:547
 * @route '/operations/fulfillment/deliveries'
 */
 const deliveryForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1187,7 +1187,7 @@ const deliveryForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> 
 
 /**
 * @see \App\Http\Controllers\OperationsController::delivery
-* @see app/Http/Controllers/OperationsController.php:543
+* @see app/Http/Controllers/OperationsController.php:547
 * @route '/operations/fulfillment/deliveries'
 */
 deliveryForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1199,7 +1199,7 @@ delivery.form = deliveryForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::receipt
-* @see app/Http/Controllers/OperationsController.php:562
+* @see app/Http/Controllers/OperationsController.php:566
 * @route '/operations/fulfillment/receipts'
 */
 export const receipt = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1214,7 +1214,7 @@ receipt.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::receipt
-* @see app/Http/Controllers/OperationsController.php:562
+* @see app/Http/Controllers/OperationsController.php:566
 * @route '/operations/fulfillment/receipts'
 */
 receipt.url = (options?: RouteQueryOptions) => {
@@ -1223,7 +1223,7 @@ receipt.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::receipt
-* @see app/Http/Controllers/OperationsController.php:562
+* @see app/Http/Controllers/OperationsController.php:566
 * @route '/operations/fulfillment/receipts'
 */
 receipt.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1233,7 +1233,7 @@ receipt.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::receipt
-* @see app/Http/Controllers/OperationsController.php:562
+* @see app/Http/Controllers/OperationsController.php:566
 * @route '/operations/fulfillment/receipts'
 */
 const receiptForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1243,7 +1243,7 @@ const receiptForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =
 
 /**
 * @see \App\Http\Controllers\OperationsController::receipt
-* @see app/Http/Controllers/OperationsController.php:562
+* @see app/Http/Controllers/OperationsController.php:566
 * @route '/operations/fulfillment/receipts'
 */
 receiptForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1255,7 +1255,7 @@ receipt.form = receiptForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::adjustment
-* @see app/Http/Controllers/OperationsController.php:580
+* @see app/Http/Controllers/OperationsController.php:584
 * @route '/operations/inventory-control/adjustments'
 */
 export const adjustment = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1270,7 +1270,7 @@ adjustment.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::adjustment
-* @see app/Http/Controllers/OperationsController.php:580
+* @see app/Http/Controllers/OperationsController.php:584
 * @route '/operations/inventory-control/adjustments'
 */
 adjustment.url = (options?: RouteQueryOptions) => {
@@ -1279,7 +1279,7 @@ adjustment.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::adjustment
-* @see app/Http/Controllers/OperationsController.php:580
+* @see app/Http/Controllers/OperationsController.php:584
 * @route '/operations/inventory-control/adjustments'
 */
 adjustment.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1289,7 +1289,7 @@ adjustment.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::adjustment
-* @see app/Http/Controllers/OperationsController.php:580
+* @see app/Http/Controllers/OperationsController.php:584
 * @route '/operations/inventory-control/adjustments'
 */
 const adjustmentForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1299,7 +1299,7 @@ const adjustmentForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'
 
 /**
 * @see \App\Http\Controllers\OperationsController::adjustment
-* @see app/Http/Controllers/OperationsController.php:580
+* @see app/Http/Controllers/OperationsController.php:584
 * @route '/operations/inventory-control/adjustments'
 */
 adjustmentForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1311,7 +1311,7 @@ adjustment.form = adjustmentForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::opname
-* @see app/Http/Controllers/OperationsController.php:631
+* @see app/Http/Controllers/OperationsController.php:635
 * @route '/operations/inventory-control/opnames'
 */
 export const opname = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1326,7 +1326,7 @@ opname.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::opname
-* @see app/Http/Controllers/OperationsController.php:631
+* @see app/Http/Controllers/OperationsController.php:635
 * @route '/operations/inventory-control/opnames'
 */
 opname.url = (options?: RouteQueryOptions) => {
@@ -1335,7 +1335,7 @@ opname.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::opname
-* @see app/Http/Controllers/OperationsController.php:631
+* @see app/Http/Controllers/OperationsController.php:635
 * @route '/operations/inventory-control/opnames'
 */
 opname.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1345,7 +1345,7 @@ opname.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::opname
-* @see app/Http/Controllers/OperationsController.php:631
+* @see app/Http/Controllers/OperationsController.php:635
 * @route '/operations/inventory-control/opnames'
 */
 const opnameForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1355,7 +1355,7 @@ const opnameForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =>
 
 /**
 * @see \App\Http\Controllers\OperationsController::opname
-* @see app/Http/Controllers/OperationsController.php:631
+* @see app/Http/Controllers/OperationsController.php:635
 * @route '/operations/inventory-control/opnames'
 */
 opnameForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1367,7 +1367,7 @@ opname.form = opnameForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::approval
-* @see app/Http/Controllers/OperationsController.php:685
+* @see app/Http/Controllers/OperationsController.php:689
 * @route '/workflow-approvals/{approval}'
 */
 export const approval = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1382,7 +1382,7 @@ approval.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::approval
-* @see app/Http/Controllers/OperationsController.php:685
+* @see app/Http/Controllers/OperationsController.php:689
 * @route '/workflow-approvals/{approval}'
 */
 approval.url = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -1415,7 +1415,7 @@ approval.url = (args: { approval: number | { id: number } } | [approval: number 
 
 /**
 * @see \App\Http\Controllers\OperationsController::approval
-* @see app/Http/Controllers/OperationsController.php:685
+* @see app/Http/Controllers/OperationsController.php:689
 * @route '/workflow-approvals/{approval}'
 */
 approval.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -1425,7 +1425,7 @@ approval.post = (args: { approval: number | { id: number } } | [approval: number
 
 /**
 * @see \App\Http\Controllers\OperationsController::approval
-* @see app/Http/Controllers/OperationsController.php:685
+* @see app/Http/Controllers/OperationsController.php:689
 * @route '/workflow-approvals/{approval}'
 */
 const approvalForm = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -1435,7 +1435,7 @@ const approvalForm = (args: { approval: number | { id: number } } | [approval: n
 
 /**
 * @see \App\Http\Controllers\OperationsController::approval
-* @see app/Http/Controllers/OperationsController.php:685
+* @see app/Http/Controllers/OperationsController.php:689
 * @route '/workflow-approvals/{approval}'
 */
 approvalForm.post = (args: { approval: number | { id: number } } | [approval: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
