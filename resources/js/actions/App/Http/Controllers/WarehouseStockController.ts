@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 const WarehouseStockController = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ WarehouseStockController.definition = {
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 WarehouseStockController.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ WarehouseStockController.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 WarehouseStockController.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ WarehouseStockController.get = (options?: RouteQueryOptions): RouteDefinition<'g
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 WarehouseStockController.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ WarehouseStockController.head = (options?: RouteQueryOptions): RouteDefinition<'
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 const WarehouseStockControllerForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const WarehouseStockControllerForm = (options?: RouteQueryOptions): RouteFormDef
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 WarehouseStockControllerForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ WarehouseStockControllerForm.get = (options?: RouteQueryOptions): RouteFormDefin
 
 /**
 * @see \App\Http\Controllers\WarehouseStockController::__invoke
-* @see app/Http/Controllers/WarehouseStockController.php:14
+* @see app/Http/Controllers/WarehouseStockController.php:17
 * @route '/warehouse-stocks'
 */
 WarehouseStockControllerForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

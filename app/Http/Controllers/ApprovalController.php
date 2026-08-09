@@ -13,6 +13,8 @@ use App\Models\StockTransaction;
 use App\Models\Warehouse;
 use App\Models\WorkflowApproval;
 use App\Services\StockService;
+use App\Support\ApproverResolver;
+use App\Support\PendingApprovalStats;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,17 +22,19 @@ class ApprovalController extends Controller
 {
     public function index(Request $request)
     {
-        $query = StockTransaction::with(['details.item:id,code,name', 'sourceWarehouse:id,name', 'destinationWarehouse:id,name', 'creator:id,name', 'approvals' => fn ($query) => $query->with('approver:id,name')->orderBy('level')])
+        $query = StockTransaction::with(['details.item:id,code,name,base_uom', 'sourceWarehouse:id,name', 'destinationWarehouse:id,name', 'creator:id,name', 'approvals' => fn ($query) => $query->with('approver:id,name')->orderBy('level')])
             ->where('status', TransactionStatus::WaitingApproval);
 
         $isSuperadmin = $request->user()->role === UserRole::Superadmin;
         if (! $isSuperadmin) {
             abort_unless(
-                $request->user()->role === UserRole::UnitManager
+                $request->user()->role?->isTransactionApprover()
                 || $request->user()->role?->isWarehouseAdmin(),
                 403,
             );
-            $query->where('assigned_approver_id', $request->user()->id);
+            $request->user()->role === UserRole::WarehouseManager
+                ? $query->whereIn('assigned_approver_id', ApproverResolver::mainWarehouseApproverIds())
+                : $query->where('assigned_approver_id', $request->user()->id);
         } elseif ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
             abort_unless(Warehouse::whereKey($warehouseId)->exists(), 404);
@@ -43,9 +47,12 @@ class ApprovalController extends Controller
             ->where('status', 'pending');
 
         if (! $isSuperadmin) {
+            $approverIds = $request->user()->role === UserRole::WarehouseManager
+                ? ApproverResolver::mainWarehouseApproverIds()
+                : collect([$request->user()->id]);
             $workflowQuery->whereHas('steps', fn ($query) => $query
                 ->whereColumn('level', 'workflow_approvals.current_level')
-                ->where('approver_id', $request->user()->id)
+                ->whereIn('approver_id', $approverIds)
                 ->where('status', 'pending'));
         } elseif ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
@@ -134,8 +141,8 @@ class ApprovalController extends Controller
                     && $approval->status === 'approved'
                     && $finalStep?->stage_key === 'warehouse_manager'
                     && $finalStep?->acted_by === $request->user()->id
-                    && $request->user()->role === UserRole::UnitManager
-                    && $request->user()->warehouse?->type === 'main',
+                    && $request->user()->role?->isTransactionApprover()
+                    && ($request->user()->role === UserRole::WarehouseManager || $request->user()->warehouse?->type === 'main'),
             ]);
         });
         $legacyHistory = Approval::with(['transaction.sourceWarehouse:id,name', 'transaction.destinationWarehouse:id,name'])
@@ -186,6 +193,8 @@ class ApprovalController extends Controller
             });
         });
 
+        $pendingMainStats = PendingApprovalStats::forWarehouseManager($request->user());
+
         return Inertia::render('Approvals/Index', [
             'transactions' => $transactions,
             'workflowApprovals' => $workflowApprovals,
@@ -193,13 +202,17 @@ class ApprovalController extends Controller
             'warehouses' => $isSuperadmin ? Warehouse::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'type']) : [],
             'canFilterWarehouse' => $isSuperadmin,
             'selectedWarehouse' => $isSuperadmin ? ($request->integer('warehouse_id') ?: null) : $request->user()->warehouse_id,
+            'userRole' => $request->user()->role->value,
+            'mainWarehouses' => $pendingMainStats['main'],
+            'warehouseCounts' => $pendingMainStats['counts'],
         ]);
     }
 
     public function approve(Request $request, StockTransaction $transaction, StockService $service)
     {
         $this->authorizeApprover($request, $transaction);
-        $transaction = $service->approveAndPost($transaction, $request->user()->id, $request->input('remarks'));
+        $canRepresent = ApproverResolver::canRepresentMainWarehouseApprover($request->user(), $transaction->assigned_approver_id);
+        $transaction = $service->approveAndPost($transaction, $request->user()->id, $request->input('remarks'), $canRepresent);
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $transaction->status === TransactionStatus::Completed
@@ -214,7 +227,8 @@ class ApprovalController extends Controller
     {
         $this->authorizeApprover($request, $transaction);
         $data = $request->validate(['remarks' => 'required|string|min:5']);
-        $service->reject($transaction, $request->user()->id, $data['remarks']);
+        $canRepresent = ApproverResolver::canRepresentMainWarehouseApprover($request->user(), $transaction->assigned_approver_id);
+        $service->reject($transaction, $request->user()->id, $data['remarks'], $canRepresent);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Transaksi berhasil ditolak.']);
 
         return back();
@@ -223,10 +237,11 @@ class ApprovalController extends Controller
     private function authorizeApprover(Request $request, StockTransaction $transaction): void
     {
         $allowed = $request->user()->role === UserRole::Superadmin
+            || ApproverResolver::canRepresentMainWarehouseApprover($request->user(), $transaction->assigned_approver_id)
             || ($transaction->type === TransactionType::StockIn
-                ? $request->user()->role === UserRole::UnitManager
+                ? $request->user()->role?->isTransactionApprover()
                     && $transaction->assigned_approver_id === $request->user()->id
-                : ($request->user()->role === UserRole::UnitManager || $request->user()->role?->isWarehouseAdmin())
+                : ($request->user()->role?->isTransactionApprover() || $request->user()->role?->isWarehouseAdmin())
                 && $transaction->assigned_approver_id === $request->user()->id);
         abort_unless($allowed, 403);
     }

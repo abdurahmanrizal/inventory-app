@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\InventoryValuationMethod;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockAdjustment extends Model
 {
-    protected $fillable = ['number', 'stock_opname_id', 'type', 'warehouse_id', 'adjustment_date', 'status', 'reason', 'created_by', 'assigned_approver_id', 'posted_at'];
+    protected $fillable = ['number', 'stock_opname_id', 'type', 'valuation_method', 'warehouse_id', 'adjustment_date', 'status', 'reason', 'created_by', 'assigned_approver_id', 'posted_at'];
 
-    protected $casts = ['adjustment_date' => 'date', 'posted_at' => 'datetime'];
+    protected $casts = ['adjustment_date' => 'date', 'valuation_method' => InventoryValuationMethod::class, 'posted_at' => 'datetime'];
 
     public function details(): HasMany
     {

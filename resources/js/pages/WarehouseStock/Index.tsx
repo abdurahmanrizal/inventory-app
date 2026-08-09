@@ -2,6 +2,7 @@ import { Head, router } from "@inertiajs/react";
 import {
   Banknote,
   Boxes,
+  Layers3,
   PackageCheck,
   RefreshCw,
   Search,
@@ -12,12 +13,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SearchableItemSelect from "../../components/searchable-item-select";
 import AppLayout from "../../layouts/AppLayout";
 
@@ -38,11 +39,13 @@ export default function Index({
   canFilterWarehouse,
   accessLabel,
   summary,
+  valuationMethod,
 }: any) {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => new Date());
+  const [layerStock, setLayerStock] = useState<any>(null);
   const refreshInProgress = useRef(false);
 
   const refreshStocks = useCallback(() => {
@@ -112,13 +115,17 @@ export default function Index({
     <AppLayout title="Stok Gudang">
       <Head title="Stok Gudang" />
 
-      <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#10233f] px-6 py-7 text-white shadow-xl shadow-slate-200 sm:px-8">
+      <section className="relative z-20 mb-6 rounded-3xl bg-[#10233f] px-6 py-7 text-white shadow-xl shadow-slate-200 sm:px-8">
         <div className="absolute -right-16 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.07] px-3 py-1.5 text-xs text-emerald-300">
               <ShieldCheck size={14} />
               {accessLabel}
+            </span>
+            <span className="ml-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-3 py-1.5 text-xs text-slate-300">
+              <Layers3 size={14} />
+              Valuasi: {valuationMethod === "fifo" ? "FIFO" : "Moving Average"}
             </span>
             <h2 className="mt-4 text-2xl font-semibold">
               Saldo persediaan terkini
@@ -130,36 +137,25 @@ export default function Index({
           </div>
 
           {canFilterWarehouse && (
-            <div className="text-xs font-semibold text-slate-300">
-              <span className="mb-2 block">Filter gudang</span>
-              <Select
-                value={selectedWarehouse ? String(selectedWarehouse) : "all"}
-                onValueChange={(value) =>
+            <div className="w-full rounded-2xl border border-white/10 bg-white/[.06] p-3 backdrop-blur-sm lg:w-80">
+              <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[.12em] text-slate-300">Cakupan gudang</span>
+                <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">{warehouses.length} lokasi</span>
+              </div>
+              <SearchableItemSelect
+                value={selectedWarehouse ? String(selectedWarehouse) : ""}
+                items={warehouses}
+                onChange={(value) =>
                   router.get(
                     "/warehouse-stocks",
-                    value !== "all" ? { warehouse_id: value } : {},
+                    value ? { warehouse_id: value } : {},
                     { preserveState: true, replace: true },
                   )
                 }
-              >
-                <SelectTrigger className="h-11 min-w-64 rounded-xl border-white/10 bg-white/10 px-3.5 text-sm text-white shadow-none hover:bg-white/15 focus-visible:border-emerald-400 focus-visible:ring-emerald-400/10 [&_svg]:text-slate-300">
-                  <SelectValue placeholder="Pilih gudang" />
-                </SelectTrigger>
-                <SelectContent align="end" className="rounded-xl bg-white p-1">
-                  <SelectItem value="all" className="rounded-lg py-2.5">
-                    Semua gudang dalam cakupan
-                  </SelectItem>
-                  {warehouses.map((warehouse: any) => (
-                    <SelectItem
-                      key={warehouse.id}
-                      value={String(warehouse.id)}
-                      className="rounded-lg py-2.5"
-                    >
-                      {warehouse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Cari gudang atau unit"
+                emptyOptionLabel="Semua gudang dalam cakupan"
+                entityLabel="gudang"
+              />
             </div>
           )}
         </div>
@@ -317,7 +313,7 @@ export default function Index({
                     "Stok fisik",
                     "Reservasi",
                     "Tersedia",
-                    "Harga",
+                    "Biaya / HPP",
                     "Nilai",
                   ].map((header) => (
                     <th key={header} className="whitespace-nowrap px-5 py-3.5">
@@ -367,7 +363,21 @@ export default function Index({
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4">
-                      {money(row.average_cost)}
+                      <span className="block">{money(row.average_cost)}</span>
+                      <small className="mt-1 block text-slate-400">
+                        {valuationMethod === "fifo"
+                          ? "Rata-rata layer tersisa"
+                          : "Rata-rata berjalan"}
+                      </small>
+                      {valuationMethod === "fifo" && (
+                        <button
+                          type="button"
+                          onClick={() => setLayerStock(row)}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
+                        >
+                          <Layers3 size={13} /> Lihat {row.cost_layers.length} layer
+                        </button>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 font-semibold">
                       {money(row.stock_value)}
@@ -391,6 +401,63 @@ export default function Index({
           </div>
         )}
       </section>
+
+      <Dialog open={Boolean(layerStock)} onOpenChange={(open) => !open && setLayerStock(null)}>
+        <DialogContent className="max-w-4xl overflow-hidden border-slate-200 bg-white p-0 shadow-xl">
+          <DialogHeader className="border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <span className="grid size-8 place-items-center rounded-lg bg-slate-200/70 text-slate-600">
+                <Layers3 size={16} />
+              </span>
+              Layer biaya FIFO
+            </DialogTitle>
+            <DialogDescription>
+              {layerStock?.item.name} · {layerStock?.warehouse.name} · Batch {layerStock?.batch_no || "-"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 text-left text-[11px] uppercase tracking-[.1em] text-slate-500">
+                <tr>
+                  {['Tanggal masuk', 'Referensi', 'Qty awal', 'Qty tersisa', 'Biaya unit', 'Nilai tersisa'].map((header) => (
+                    <th key={header} className="whitespace-nowrap px-5 py-3">{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {layerStock?.cost_layers.map((layer: any) => (
+                  <tr key={layer.id} className="transition-colors hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                      {layer.received_at
+                        ? new Date(layer.received_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+                        : '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                      {layer.reference_type || '-'} {layer.reference_id ? `#${layer.reference_id}` : ''}
+                    </td>
+                    <td className="px-5 py-4">{number(layer.original_qty)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-700">{number(layer.remaining_qty)}</td>
+                    <td className="whitespace-nowrap px-5 py-4">{money(layer.unit_cost)}</td>
+                    <td className="whitespace-nowrap px-5 py-4 font-semibold">{money(layer.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-slate-200 bg-slate-50 font-semibold">
+                <tr>
+                  <td colSpan={3} className="px-5 py-4 text-right">Total layer tersisa</td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {number(layerStock?.cost_layers.reduce((total: number, layer: any) => total + layer.remaining_qty, 0) || 0)}
+                  </td>
+                  <td />
+                  <td className="whitespace-nowrap px-5 py-4">
+                    {money(layerStock?.cost_layers.reduce((total: number, layer: any) => total + layer.value, 0) || 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

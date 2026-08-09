@@ -2,14 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Enums\InventoryValuationMethod;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Enums\UserRole;
 use App\Models\CurrentStock;
+use App\Models\InventorySetting;
 use App\Models\Item;
+use App\Models\StockCostLayer;
 use App\Models\StockTransaction;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\InventoryValuationService;
+use App\Support\PendingApprovalStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -80,6 +85,62 @@ class StockTransactionTest extends TestCase
 
         $response->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_stock_in_document_shows_supplier_document_time_and_approval_time(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $warehouse = $this->warehouse('DOC-IN', 'Gudang Dokumen Masuk');
+        $item = $this->item();
+        $transaction = StockTransaction::create([
+            'number' => 'STOCK_IN-DOC-META',
+            'type' => TransactionType::StockIn,
+            'destination_warehouse_id' => $warehouse->id,
+            'supplier_name' => 'PT Supplier Teruji',
+            'document_date' => '2026-08-08',
+            'status' => TransactionStatus::Completed,
+            'created_by' => $user->id,
+            'approved_by' => $user->id,
+            'approved_at' => '2026-08-09 14:35:00',
+        ]);
+        $transaction->forceFill(['created_at' => '2026-08-08 09:17:00'])->save();
+        $transaction->details()->create(['item_id' => $item->id, 'qty' => 1, 'unit_cost' => 100]);
+        $transaction->load(['details.item', 'sourceWarehouse', 'destinationWarehouse', 'creator', 'approver']);
+
+        $html = view('documents.stock-transaction', ['transaction' => $transaction])->render();
+
+        $this->assertStringContainsString('PT Supplier Teruji', $html);
+        $this->assertStringContainsString('08/08/2026 09:17', $html);
+        $this->assertStringContainsString('09/08/2026 14:35', $html);
+    }
+
+    public function test_unit_return_document_shows_both_manager_approvals_and_signatures(): void
+    {
+        $main = $this->warehouse('DOC-RETURN-MAIN', 'Gudang Utama Dokumen');
+        $unit = Warehouse::create(['code' => 'DOC-RETURN-UNIT', 'name' => 'Gudang Unit Dokumen', 'type' => 'unit', 'main_warehouse_id' => $main->id]);
+        $item = $this->item();
+        $creator = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
+        $unitManager = User::factory()->create(['name' => 'Manajer Unit Dokumen', 'role' => UserRole::UnitManager, 'warehouse_id' => $unit->id]);
+        $mainManager = User::factory()->create(['name' => 'Manajer Utama Dokumen', 'role' => UserRole::UnitManager, 'warehouse_id' => $main->id]);
+        $transaction = StockTransaction::create([
+            'number' => 'RETURN-DOC-001', 'type' => TransactionType::Transfer, 'request_kind' => 'unit_return',
+            'stock_out_reason' => 'restitution', 'source_warehouse_id' => $unit->id, 'destination_warehouse_id' => $main->id,
+            'document_date' => '2026-08-08', 'status' => TransactionStatus::Completed, 'created_by' => $creator->id,
+            'approved_by' => $mainManager->id, 'approved_at' => '2026-08-10 16:45:00',
+        ]);
+        $transaction->details()->create(['item_id' => $item->id, 'qty' => 2, 'unit_cost' => 100]);
+        $transaction->approvals()->create(['level' => 1, 'approver_id' => $unitManager->id, 'status' => 'approved', 'acted_at' => '2026-08-09 09:15:00']);
+        $transaction->approvals()->create(['level' => 2, 'approver_id' => $mainManager->id, 'status' => 'approved', 'acted_at' => '2026-08-10 16:45:00']);
+        $transaction->load(['details.item', 'sourceWarehouse', 'destinationWarehouse', 'creator', 'approver', 'approvals.approver']);
+
+        $html = view('documents.stock-transaction', ['transaction' => $transaction])->render();
+
+        $this->assertStringContainsString('Disetujui Manajer Gudang Unit', $html);
+        $this->assertStringContainsString('Disetujui Manajer Gudang Utama', $html);
+        $this->assertStringContainsString('09/08/2026 09:15', $html);
+        $this->assertStringContainsString('10/08/2026 16:45', $html);
+        $this->assertStringContainsString('Manajer Unit Dokumen', $html);
+        $this->assertStringContainsString('Manajer Utama Dokumen', $html);
     }
 
     public function test_user_can_download_stock_out_document_with_current_hpp(): void
@@ -206,6 +267,144 @@ class StockTransactionTest extends TestCase
         $this->assertSame(TransactionStatus::Completed, $transaction->fresh()->status);
     }
 
+    public function test_wet_warehouse_admin_stock_in_lists_active_wet_and_shared_items_without_existing_stock(): void
+    {
+        $warehouse = $this->warehouse('WH-WET-ITEMS', 'Gudang Utama Basah');
+        $admin = User::factory()->create(['role' => UserRole::WarehouseAdminWet, 'warehouse_id' => $warehouse->id]);
+        $wet = Item::create(['code' => 'WET-NEW', 'name' => 'Item Basah Baru', 'base_uom' => 'KG', 'warehouse_type' => 'wet', 'is_active' => true]);
+        $shared = Item::create(['code' => 'BOTH-NEW', 'name' => 'Item Bersama Baru', 'base_uom' => 'PCS', 'warehouse_type' => 'both', 'is_active' => true]);
+        Item::create(['code' => 'DRY-NEW', 'name' => 'Item Kering Baru', 'base_uom' => 'PCS', 'warehouse_type' => 'dry', 'is_active' => true]);
+        Item::create(['code' => 'WET-INACTIVE', 'name' => 'Item Basah Nonaktif', 'base_uom' => 'KG', 'warehouse_type' => 'wet', 'is_active' => false]);
+
+        $this->actingAs($admin)
+            ->get('/stock-transactions?type=stock_in')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('items', 2)
+                ->where('items', fn ($items) => collect($items)->pluck('id')->sort()->values()->all() === collect([$wet->id, $shared->id])->sort()->values()->all())
+                ->where('userWarehouse.id', $warehouse->id));
+
+        $this->assertDatabaseCount('current_stocks', 0);
+    }
+
+    public function test_wet_warehouse_admin_cannot_submit_dry_item_to_stock_in(): void
+    {
+        $warehouse = $this->warehouse('WH-WET-VALIDATION', 'Gudang Utama Basah');
+        $admin = User::factory()->create(['role' => UserRole::WarehouseAdminWet, 'warehouse_id' => $warehouse->id]);
+        User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $warehouse->id]);
+        $dry = Item::create(['code' => 'DRY-FORGED', 'name' => 'Item Kering', 'base_uom' => 'PCS', 'warehouse_type' => 'dry', 'is_active' => true]);
+
+        $this->actingAs($admin)->post(route('stock-transactions.store'), [
+            'type' => 'stock_in',
+            'request_kind' => 'supplier_receipt',
+            'destination_warehouse_id' => $warehouse->id,
+            'document_date' => now()->toDateString(),
+            'details' => [['item_id' => $dry->id, 'qty' => 1, 'unit_cost' => 1000]],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseCount('stock_transactions', 0);
+    }
+
+    public function test_stock_in_requires_positive_hpp_for_every_item(): void
+    {
+        $warehouse = $this->warehouse('WH-HPP-REQUIRED', 'Gudang Utama Kering');
+        $admin = User::factory()->create(['role' => UserRole::WarehouseAdminDry, 'warehouse_id' => $warehouse->id]);
+        $item = $this->item();
+
+        foreach ([null, '', 0, -100] as $invalidCost) {
+            $this->actingAs($admin)->postJson(route('stock-transactions.store'), [
+                'type' => 'stock_in',
+                'request_kind' => 'supplier_receipt',
+                'destination_warehouse_id' => $warehouse->id,
+                'document_date' => now()->toDateString(),
+                'details' => [['item_id' => $item->id, 'qty' => 1, 'unit_cost' => $invalidCost]],
+            ])->assertUnprocessable()->assertJsonValidationErrors('details.0.unit_cost');
+        }
+
+        $this->assertDatabaseCount('stock_transactions', 0);
+    }
+
+    public function test_stock_in_prefers_scoped_warehouse_manager_over_global_manager(): void
+    {
+        $warehouse = $this->warehouse('WH-SCOPED-DRY', 'Gudang Utama Kering');
+        $admin = User::factory()->create(['role' => UserRole::WarehouseAdminDry, 'warehouse_id' => $warehouse->id]);
+        $scopedManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $warehouse->id]);
+        $globalManager = User::factory()->create(['role' => UserRole::WarehouseManager, 'warehouse_id' => null]);
+        $item = $this->item();
+
+        $this->actingAs($admin)->post(route('stock-transactions.store'), [
+            'type' => 'stock_in', 'request_kind' => 'supplier_receipt',
+            'destination_warehouse_id' => $warehouse->id, 'document_date' => now()->toDateString(),
+            'details' => [['item_id' => $item->id, 'qty' => 4, 'unit_cost' => 1000]],
+        ])->assertRedirect();
+
+        $transaction = StockTransaction::latest('id')->firstOrFail();
+        $this->assertSame($scopedManager->id, $transaction->assigned_approver_id);
+        $this->assertDatabaseHas('approvals', [
+            'stock_transaction_id' => $transaction->id,
+            'approver_id' => $scopedManager->id,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseMissing('approvals', [
+            'stock_transaction_id' => $transaction->id,
+            'approver_id' => $globalManager->id,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'type' => 'stock-transaction.approval_required',
+            'notifiable_id' => $scopedManager->id,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'type' => 'stock-transaction.approval_required',
+            'notifiable_id' => $globalManager->id,
+        ]);
+        $this->actingAs($scopedManager)->get(route('approvals.index'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+            ->has('transactions.data', 1)
+            ->where('transactions.data.0.id', $transaction->id)
+            ->where('transactions.data.0.details.0.item.base_uom', 'PCS'));
+        $this->actingAs($globalManager)->get(route('approvals.index'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+            ->has('transactions.data', 1)
+            ->where('transactions.data.0.id', $transaction->id)
+            ->where('warehouseCounts.'.$warehouse->id, 1));
+        $this->actingAs($globalManager)->getJson(route('notifications.index'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('items.0.data.main_warehouse_id', $warehouse->id)
+            ->assertJsonPath('items.0.data.module', 'stock_transaction');
+
+        $this->actingAs($globalManager)->post(route('approvals.approve', $transaction))->assertRedirect();
+        $this->assertSame(TransactionStatus::Completed, $transaction->fresh()->status);
+        $this->assertSame($globalManager->id, $transaction->fresh()->approved_by);
+        $this->assertDatabaseHas('approvals', [
+            'stock_transaction_id' => $transaction->id,
+            'approver_id' => $globalManager->id,
+            'status' => 'approved',
+        ]);
+    }
+
+    public function test_global_manager_badge_count_matches_visible_fallback_approval(): void
+    {
+        $warehouse = $this->warehouse('WH-GLOBAL-BADGE', 'Gudang Utama Kering');
+        $admin = User::factory()->create(['role' => UserRole::WarehouseAdminDry, 'warehouse_id' => $warehouse->id]);
+        $globalManager = User::factory()->create(['role' => UserRole::WarehouseManager, 'warehouse_id' => null]);
+        $item = $this->item();
+
+        $this->actingAs($admin)->post(route('stock-transactions.store'), [
+            'type' => 'stock_in', 'request_kind' => 'supplier_receipt',
+            'destination_warehouse_id' => $warehouse->id, 'document_date' => now()->toDateString(),
+            'details' => [['item_id' => $item->id, 'qty' => 2, 'unit_cost' => 500]],
+        ])->assertRedirect();
+
+        $stats = PendingApprovalStats::forWarehouseManager($globalManager);
+        $this->assertSame(1, $stats['counts']->get($warehouse->id));
+        $this->actingAs($globalManager)->get(route('approvals.index'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+            ->has('transactions.data', 1)
+            ->where('warehouseCounts.'.$warehouse->id, 1));
+    }
+
     public function test_rejected_stock_in_does_not_update_stock(): void
     {
         $warehouse = $this->warehouse('WH-REJECT-IN', 'Gudang Utama Basah');
@@ -285,10 +484,93 @@ class StockTransactionTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
         $manager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $unit->id]);
 
-        $this->actingAs($admin)->post(route('stock-transactions.store'), ['type' => 'stock_out', 'stock_out_reason' => 'expired', 'source_warehouse_id' => $other->id, 'document_date' => now()->toDateString(), 'details' => [['item_id' => $item->id, 'qty' => 2]]])->assertRedirect();
-        $this->assertDatabaseHas('stock_transactions', ['type' => 'stock_out', 'stock_out_reason' => 'expired', 'source_warehouse_id' => $unit->id, 'assigned_approver_id' => $manager->id]);
+        $this->actingAs($admin)->post(route('stock-transactions.store'), ['type' => 'stock_out', 'stock_out_reason' => 'operational', 'source_warehouse_id' => $other->id, 'document_date' => now()->toDateString(), 'details' => [['item_id' => $item->id, 'qty' => 2]]])->assertRedirect();
+        $this->assertDatabaseHas('stock_transactions', ['type' => 'stock_out', 'stock_out_reason' => 'operational', 'source_warehouse_id' => $unit->id, 'assigned_approver_id' => $manager->id]);
 
         $this->actingAs($admin)->post(route('stock-transactions.store'), ['type' => 'transfer', 'source_warehouse_id' => $unit->id, 'destination_warehouse_id' => $other->id, 'document_date' => now()->toDateString(), 'details' => [['item_id' => $item->id, 'qty' => 1]]])->assertForbidden();
+    }
+
+    public function test_fifo_unit_return_uses_source_layer_main_warehouse_and_two_approvals(): void
+    {
+        $configuredMain = $this->warehouse('RETURN-MAIN-A', 'Gudang Utama A');
+        $sourceMain = $this->warehouse('RETURN-MAIN-B', 'Gudang Utama B');
+        $unit = Warehouse::create(['code' => 'RETURN-UNIT', 'name' => 'Gudang Unit Retur', 'type' => 'unit', 'main_warehouse_id' => $configuredMain->id]);
+        $item = $this->item();
+        $unitUser = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
+        $unitManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $unit->id]);
+        $mainManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $sourceMain->id]);
+        InventorySetting::current()->update(['valuation_method' => InventoryValuationMethod::Fifo]);
+        $valuation = app(InventoryValuationService::class);
+        $valuation->receive($sourceMain->id, $item->id, 5, 125, 'RETURN-BATCH', null, null, null, 'test', 1, $unitUser->id);
+        $allocation = $valuation->issue($sourceMain->id, $item->id, 5, 'RETURN-BATCH', 'test', 2, $unitUser->id)[0];
+        $valuation->receive(
+            $unit->id, $item->id, 5, $allocation['unit_cost'], $allocation['batch_no'], null, null, null,
+            'test', 3, $unitUser->id, null, false, $allocation['source_received_at'], $allocation['source_cost_layer_id'],
+        );
+
+        $this->actingAs($unitUser)->post(route('stock-transactions.store'), [
+            'type' => 'stock_out',
+            'stock_out_reason' => 'restitution',
+            'source_warehouse_id' => $configuredMain->id,
+            'document_date' => now()->toDateString(),
+            'details' => [['item_id' => $item->id, 'qty' => 3, 'batch_no' => 'RETURN-BATCH']],
+        ])->assertRedirect();
+
+        $transaction = StockTransaction::latest('id')->firstOrFail();
+        $this->assertSame(TransactionType::Transfer, $transaction->type);
+        $this->assertSame('unit_return', $transaction->request_kind);
+        $this->assertSame($unit->id, $transaction->source_warehouse_id);
+        $this->assertSame($sourceMain->id, $transaction->destination_warehouse_id);
+        $this->assertSame($unitManager->id, $transaction->assigned_approver_id);
+
+        $this->actingAs($unitManager)->post(route('approvals.approve', $transaction))->assertRedirect();
+        $this->assertSame($mainManager->id, $transaction->fresh()->assigned_approver_id);
+        $this->assertSame(TransactionStatus::WaitingApproval, $transaction->fresh()->status);
+
+        $this->actingAs($mainManager)->post(route('approvals.approve', $transaction))->assertRedirect();
+        $this->assertSame(TransactionStatus::Completed, $transaction->fresh()->status);
+        $this->assertSame(2.0, (float) CurrentStock::where('warehouse_id', $unit->id)->where('item_id', $item->id)->value('qty_on_hand'));
+        $this->assertSame(3.0, (float) CurrentStock::where('warehouse_id', $sourceMain->id)->where('item_id', $item->id)->value('qty_on_hand'));
+        $returnedLayer = StockCostLayer::where('warehouse_id', $sourceMain->id)->latest('id')->firstOrFail();
+        $this->assertNotNull($returnedLayer->source_cost_layer_id);
+        $this->assertSame(3.0, (float) $returnedLayer->remaining_qty);
+    }
+
+    public function test_moving_average_unit_return_uses_configured_main_and_lists_only_session_stock_items(): void
+    {
+        $main = $this->warehouse('AVG-RETURN-MAIN', 'Gudang Utama Average');
+        $unit = Warehouse::create(['code' => 'AVG-RETURN-UNIT', 'name' => 'Gudang Unit Average', 'type' => 'unit', 'main_warehouse_id' => $main->id]);
+        $item = $this->item();
+        Item::create(['code' => 'NO-SESSION-STOCK', 'name' => 'Tanpa Stok Unit', 'base_uom' => 'PCS', 'warehouse_type' => 'both']);
+        $unitUser = User::factory()->create(['role' => UserRole::UnitUser, 'warehouse_id' => $unit->id]);
+        $unitManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $unit->id]);
+        $mainManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $main->id]);
+        CurrentStock::create([
+            'warehouse_id' => $unit->id, 'item_id' => $item->id, 'qty_on_hand' => 6,
+            'qty_reserved' => 1, 'average_cost' => 175,
+        ]);
+
+        $this->actingAs($unitUser)->get('/stock-transactions?type=stock_out')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('items', 1)
+                ->where('items.0.id', $item->id)
+                ->where('items.0.available_qty', 5)
+                ->missing('items.1'));
+
+        $this->actingAs($unitUser)->post(route('stock-transactions.store'), [
+            'type' => 'stock_out', 'stock_out_reason' => 'restitution',
+            'source_warehouse_id' => $main->id, 'document_date' => now()->toDateString(),
+            'details' => [['item_id' => $item->id, 'qty' => 2]],
+        ])->assertRedirect();
+
+        $transaction = StockTransaction::latest('id')->firstOrFail();
+        $this->assertSame($main->id, $transaction->destination_warehouse_id);
+        $this->actingAs($unitManager)->post(route('approvals.approve', $transaction))->assertRedirect();
+        $this->actingAs($mainManager)->post(route('approvals.approve', $transaction))->assertRedirect();
+        $this->assertSame(4.0, (float) CurrentStock::where('warehouse_id', $unit->id)->where('item_id', $item->id)->value('qty_on_hand'));
+        $this->assertSame(2.0, (float) CurrentStock::where('warehouse_id', $main->id)->where('item_id', $item->id)->value('qty_on_hand'));
+        $this->assertSame(175.0, (float) CurrentStock::where('warehouse_id', $main->id)->where('item_id', $item->id)->value('average_cost'));
     }
 
     public function test_main_warehouse_stock_out_is_assigned_only_to_its_own_manager(): void

@@ -58,7 +58,11 @@ class DatabaseSeeder extends Seeder
         foreach (UserRole::cases() as $role) {
             DB::table('roles')->updateOrInsert(
                 ['code' => $role->value],
-                ['name' => ucwords(str_replace('_', ' ', $role->value)), 'description' => 'Role sistem WMS', 'updated_at' => now(), 'created_at' => now()],
+                ['name' => match ($role) {
+                    UserRole::Finance => 'Keuangan',
+                    UserRole::WarehouseManager => 'Manajer Gudang Utama',
+                    default => ucwords(str_replace('_', ' ', $role->value)),
+                }, 'description' => 'Role sistem WMS', 'updated_at' => now(), 'created_at' => now()],
             );
         }
 
@@ -86,10 +90,12 @@ class DatabaseSeeder extends Seeder
     {
         $accounts = [
             ['Super Admin', 'superadmin@wms.test', UserRole::Superadmin, null],
+            ['Keuangan', 'keuangan@wms.test', UserRole::Finance, null],
             ['Admin Gudang Kering', 'admin.kering@wms.test', UserRole::WarehouseAdminDry, $warehouses['dry']->id],
             ['Manajer Gudang Kering', 'manager.kering@wms.test', UserRole::UnitManager, $warehouses['dry']->id],
             ['Admin Gudang Basah', 'admin.basah@wms.test', UserRole::WarehouseAdminWet, $warehouses['wet']->id],
             ['Manajer Gudang Basah', 'manager.basah@wms.test', UserRole::UnitManager, $warehouses['wet']->id],
+            ['Manajer Gudang Utama', 'manager.utama@wms.test', UserRole::WarehouseManager, null],
             ['Manajer Unit Cafe', 'manager.cafe@wms.test', UserRole::UnitManager, $warehouses['cafe']->id],
             ['User Unit Cafe', 'user.cafe@wms.test', UserRole::UnitUser, $warehouses['cafe']->id],
             ['Manajer Unit Kitchen', 'manager.kitchen@wms.test', UserRole::UnitManager, $warehouses['kitchen']->id],

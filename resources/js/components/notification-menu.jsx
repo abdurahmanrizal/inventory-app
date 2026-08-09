@@ -13,13 +13,24 @@ const eventStyle = {
   request_rejected: [XCircle, "bg-rose-50 text-rose-600"],
 };
 
-export default function NotificationMenu({ notifications }) {
+export default function NotificationMenu({ notifications, role, mainWarehouses = [] }) {
   const [feed, setFeed] = useState(
     notifications || { unread_count: 0, items: [] },
   );
   const requestRef = useRef(null);
   const unreadCount = Number(feed?.unread_count || 0);
   const items = feed?.items || [];
+  const [activeWarehouse, setActiveWarehouse] = useState("all");
+  const showWarehouseTabs = role === "warehouse_manager" && mainWarehouses.length > 0;
+  const visibleItems = activeWarehouse === "all"
+    ? items
+    : items.filter(
+        (notification) =>
+          String(notification.data?.main_warehouse_id) === activeWarehouse,
+      );
+  const warehouseCount = (warehouseId) => items.filter(
+    (notification) => String(notification.data?.main_warehouse_id) === String(warehouseId),
+  ).length;
 
   const refreshNotifications = useCallback(async () => {
     if (
@@ -134,9 +145,33 @@ export default function NotificationMenu({ notifications }) {
           )}
         </div>
 
+        {showWarehouseTabs && (
+          <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2.5">
+            <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setActiveWarehouse("all")}
+                className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-semibold transition ${activeWarehouse === "all" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+              >
+                Semua <span className="ml-1 opacity-75">{items.length}</span>
+              </button>
+              {mainWarehouses.map((warehouse) => (
+                <button
+                  key={warehouse.id}
+                  type="button"
+                  onClick={() => setActiveWarehouse(String(warehouse.id))}
+                  className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-semibold transition ${activeWarehouse === String(warehouse.id) ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+                >
+                  {warehouse.name.replace("Gudang Utama ", "")} <span className="ml-1 opacity-75">{warehouseCount(warehouse.id)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="max-h-[420px] overflow-y-auto">
-          {items.length ? (
-            items.map((notification) => {
+          {visibleItems.length ? (
+            visibleItems.map((notification) => {
               const event = notification.data?.event;
               const [Icon, tone] = eventStyle[event] || [
                 Bell,
@@ -188,7 +223,7 @@ export default function NotificationMenu({ notifications }) {
                 <Bell size={19} />
               </span>
               <p className="mt-3 text-sm font-medium text-slate-700">
-                Belum ada notifikasi
+                {activeWarehouse === "all" ? "Belum ada notifikasi" : "Belum ada notifikasi gudang ini"}
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 Update approval request akan tampil di sini.

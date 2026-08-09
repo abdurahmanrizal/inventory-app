@@ -9,6 +9,7 @@ type Props = {
   onChange: (value: string) => void;
   placeholder?: string;
   emptyOptionLabel?: string;
+  entityLabel?: string;
 };
 
 export default function SearchableItemSelect({
@@ -17,6 +18,7 @@ export default function SearchableItemSelect({
   onChange,
   placeholder = "Cari kode atau nama item",
   emptyOptionLabel,
+  entityLabel = "item",
 }: Props) {
   const selected = items.find((item) => String(item.id) === String(value));
   const [query, setQuery] = useState(
@@ -65,8 +67,8 @@ export default function SearchableItemSelect({
       {query || value ? (
         <button
           type="button"
-          aria-label="Reset pilihan item"
-          title="Reset pilihan item"
+          aria-label={`Reset pilihan ${entityLabel}`}
+          title={`Reset pilihan ${entityLabel}`}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             onChange("");
@@ -122,7 +124,7 @@ export default function SearchableItemSelect({
             ))
           ) : (
             <p className="px-3 py-6 text-center text-xs text-slate-500">
-              Item tidak ditemukan.
+              {entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} tidak ditemukan.
             </p>
           )}
         </div>

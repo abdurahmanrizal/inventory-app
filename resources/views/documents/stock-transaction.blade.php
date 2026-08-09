@@ -37,11 +37,17 @@
 </head>
 <body>
     @php
-        $typeLabels = ['stock_in' => 'Stock In', 'stock_out' => 'Stock Out', 'transfer' => $transaction->request_kind === 'unit_request' ? 'Permintaan Stok Unit' : 'Mutasi Antar Gudang'];
+        $typeLabels = ['stock_in' => 'Stock In', 'stock_out' => 'Stock Out', 'transfer' => $transaction->request_kind === 'unit_request' ? 'Permintaan Stok Unit' : ($transaction->request_kind === 'unit_return' ? 'Pengembalian ke Gudang Utama' : 'Mutasi Antar Gudang')];
         $statusLabels = ['waiting_approval' => 'Menunggu Persetujuan', 'completed' => 'Selesai', 'rejected' => 'Ditolak', 'draft' => 'Draft'];
-        $stockOutReasonLabels = ['operational' => 'Pemakaian Operasional', 'shrinkage' => 'Penyusutan', 'expired' => 'Kedaluwarsa', 'damaged' => 'Barang Rusak', 'waste' => 'Waste / Terbuang', 'return' => 'Retur', 'other' => 'Lainnya'];
+        $stockOutReasonLabels = ['operational' => 'Pemakaian Operasional', 'shrinkage' => 'Penyusutan', 'expired' => 'Kedaluwarsa', 'damaged' => 'Barang Rusak', 'waste' => 'Waste / Terbuang', 'return' => 'Retur', 'restitution' => 'Pengembalian', 'other' => 'Lainnya'];
         $type = $transaction->type->value;
         $status = $transaction->status->value;
+        $isUnitReturn = $type === 'transfer' && $transaction->request_kind === 'unit_return';
+        $unitManagerApproval = $isUnitReturn ? $transaction->approvals->firstWhere('level', 1) : null;
+        $mainManagerApproval = $isUnitReturn ? $transaction->approvals->firstWhere('level', 2) : null;
+        $documentDateTime = $transaction->document_date
+            ->copy()
+            ->setTimeFrom($transaction->created_at ?? now());
         $totalHpp = 0;
         $logoPath = public_path('brand/bas-stockflow-mark.png');
         $logoDataUri = file_exists($logoPath)
@@ -68,18 +74,24 @@
 
     <table class="meta">
         <tr>
-            <td><span class="label">Tanggal Dokumen</span><span class="value">{{ $transaction->document_date->format('d/m/Y') }}</span></td>
+            <td><span class="label">Tanggal Dokumen</span><span class="value">{{ $documentDateTime->format('d/m/Y H:i') }}</span></td>
             <td><span class="label">Status</span><span class="value">{{ $statusLabels[$status] ?? $status }}</span></td>
             <td><span class="label">Gudang Asal</span><span class="value">{{ $transaction->sourceWarehouse?->name ?? '-' }}</span></td>
             <td><span class="label">Gudang Tujuan</span><span class="value">{{ $transaction->destinationWarehouse?->name ?? '-' }}</span></td>
         </tr>
         <tr>
-            <td colspan="2"><span class="label">Dibuat Oleh</span><span class="value">{{ $transaction->creator?->name ?? '-' }}</span></td>
+            <td><span class="label">Dibuat Oleh</span><span class="value">{{ $transaction->creator?->name ?? '-' }}</span></td>
+            @if($isUnitReturn)
+                <td><span class="label">Disetujui Manajer Gudang Unit</span><span class="value">{{ $unitManagerApproval?->acted_at?->format('d/m/Y H:i') ?? '-' }}</span></td>
+                <td colspan="2"><span class="label">Disetujui Manajer Gudang Utama</span><span class="value">{{ $mainManagerApproval?->acted_at?->format('d/m/Y H:i') ?? '-' }}</span></td>
+            @else
+                <td><span class="label">Tanggal Disetujui</span><span class="value">{{ $transaction->approved_at?->format('d/m/Y H:i') ?? '-' }}</span></td>
             @if($type === 'stock_out')
                 <td><span class="label">Jenis Pengeluaran</span><span class="value">{{ $stockOutReasonLabels[$transaction->stock_out_reason] ?? 'Tidak dicantumkan' }}</span></td>
-                <td><span class="label">Penerima / Tujuan</span><span class="value">{{ $transaction->supplier_name ?: '-' }}</span></td>
+                <td><span class="label">Penerima / Tujuan</span><span class="value">{{ $transaction->supplier_name ?: 'Eksternal' }}</span></td>
             @else
-                <td colspan="2"><span class="label">Supplier / Pihak Eksternal</span><span class="value">{{ $transaction->supplier_name ?: '-' }}</span></td>
+                <td colspan="2"><span class="label">Nama Supplier</span><span class="value">{{ $transaction->supplier_name ?: 'Eksternal' }}</span></td>
+            @endif
             @endif
         </tr>
     </table>
@@ -90,7 +102,7 @@
         <tbody>
         @foreach($transaction->details as $detail)
             @php
-                $hpp = (float) ($type === 'stock_out' ? $detail->document_hpp : $detail->unit_cost);
+                $hpp = (float) (($type === 'stock_out' || $isUnitReturn) ? $detail->document_hpp : $detail->unit_cost);
                 $subtotalHpp = (float) $detail->qty * $hpp;
                 $totalHpp += $subtotalHpp;
             @endphp
@@ -115,6 +127,28 @@
     <div class="section-title">Catatan</div>
     <div class="notes">{{ $transaction->notes ?: 'Tidak ada catatan tambahan.' }}</div>
 
+    @if($isUnitReturn)
+    <table class="signatures">
+        <tr>
+            <td style="width:50%">Disetujui Manajer Gudang Unit,</td>
+            <td style="width:50%">Disetujui Manajer Gudang Utama,</td>
+        </tr>
+        <tr>
+            <td class="sign-space"></td>
+            <td class="sign-space"></td>
+        </tr>
+        <tr>
+            <td style="width:50%">
+                <div class="sign-line">{{ $unitManagerApproval?->approver?->name ?? '(........................)' }}</div>
+                <div class="sign-role">Manajer Gudang Unit</div>
+            </td>
+            <td style="width:50%">
+                <div class="sign-line">{{ $mainManagerApproval?->approver?->name ?? '(........................)' }}</div>
+                <div class="sign-role">Manajer Gudang Utama</div>
+            </td>
+        </tr>
+    </table>
+    @else
     <table class="signatures">
         <tr>
             <td></td>
@@ -145,6 +179,7 @@
             </td>
         </tr>
     </table>
+    @endif
     <div class="footer">Dokumen dibuat oleh BAS StockFlow pada {{ now()->format('d/m/Y H:i') }}</div>
 </body>
 </html>

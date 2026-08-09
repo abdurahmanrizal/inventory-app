@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 const TransactionActivityController = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ TransactionActivityController.definition = {
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 TransactionActivityController.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ TransactionActivityController.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 TransactionActivityController.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ TransactionActivityController.get = (options?: RouteQueryOptions): RouteDefiniti
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 TransactionActivityController.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ TransactionActivityController.head = (options?: RouteQueryOptions): RouteDefinit
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 const TransactionActivityControllerForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const TransactionActivityControllerForm = (options?: RouteQueryOptions): RouteFo
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 TransactionActivityControllerForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ TransactionActivityControllerForm.get = (options?: RouteQueryOptions): RouteForm
 
 /**
 * @see \App\Http\Controllers\TransactionActivityController::__invoke
-* @see app/Http/Controllers/TransactionActivityController.php:14
+* @see app/Http/Controllers/TransactionActivityController.php:15
 * @route '/transaction-activities'
 */
 TransactionActivityControllerForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

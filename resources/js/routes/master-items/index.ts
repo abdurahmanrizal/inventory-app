@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\OperationsController::importMethod
-* @see app/Http/Controllers/OperationsController.php:373
+* @see app/Http/Controllers/OperationsController.php:385
 * @route '/operations/master-data/items/import'
 */
 export const importMethod = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ importMethod.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importMethod
-* @see app/Http/Controllers/OperationsController.php:373
+* @see app/Http/Controllers/OperationsController.php:385
 * @route '/operations/master-data/items/import'
 */
 importMethod.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ importMethod.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importMethod
-* @see app/Http/Controllers/OperationsController.php:373
+* @see app/Http/Controllers/OperationsController.php:385
 * @route '/operations/master-data/items/import'
 */
 importMethod.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ importMethod.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::importMethod
-* @see app/Http/Controllers/OperationsController.php:373
+* @see app/Http/Controllers/OperationsController.php:385
 * @route '/operations/master-data/items/import'
 */
 const importMethodForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ const importMethodForm = (options?: RouteQueryOptions): RouteFormDefinition<'pos
 
 /**
 * @see \App\Http\Controllers\OperationsController::importMethod
-* @see app/Http/Controllers/OperationsController.php:373
+* @see app/Http/Controllers/OperationsController.php:385
 * @route '/operations/master-data/items/import'
 */
 importMethodForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -57,7 +57,7 @@ importMethod.form = importMethodForm
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 export const importTemplate = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -72,7 +72,7 @@ importTemplate.definition = {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 importTemplate.url = (options?: RouteQueryOptions) => {
@@ -81,7 +81,7 @@ importTemplate.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 importTemplate.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -91,7 +91,7 @@ importTemplate.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 importTemplate.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -101,7 +101,7 @@ importTemplate.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => 
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 const importTemplateForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -111,7 +111,7 @@ const importTemplateForm = (options?: RouteQueryOptions): RouteFormDefinition<'g
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 importTemplateForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -121,7 +121,7 @@ importTemplateForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get
 
 /**
 * @see \App\Http\Controllers\OperationsController::importTemplate
-* @see app/Http/Controllers/OperationsController.php:449
+* @see app/Http/Controllers/OperationsController.php:461
 * @route '/operations/master-data/items/import-template'
 */
 importTemplateForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

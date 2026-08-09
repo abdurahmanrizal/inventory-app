@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::index
-* @see app/Http/Controllers/StockTransactionController.php:25
+* @see app/Http/Controllers/StockTransactionController.php:30
 * @route '/stock-transactions'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::store
-* @see app/Http/Controllers/StockTransactionController.php:73
+* @see app/Http/Controllers/StockTransactionController.php:117
 * @route '/stock-transactions'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::store
-* @see app/Http/Controllers/StockTransactionController.php:73
+* @see app/Http/Controllers/StockTransactionController.php:117
 * @route '/stock-transactions'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::store
-* @see app/Http/Controllers/StockTransactionController.php:73
+* @see app/Http/Controllers/StockTransactionController.php:117
 * @route '/stock-transactions'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::store
-* @see app/Http/Controllers/StockTransactionController.php:73
+* @see app/Http/Controllers/StockTransactionController.php:117
 * @route '/stock-transactions'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::store
-* @see app/Http/Controllers/StockTransactionController.php:73
+* @see app/Http/Controllers/StockTransactionController.php:117
 * @route '/stock-transactions'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 export const document = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -153,7 +153,7 @@ document.definition = {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 document.url = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -186,7 +186,7 @@ document.url = (args: { transaction: number | { id: number } } | [transaction: n
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 document.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -196,7 +196,7 @@ document.get = (args: { transaction: number | { id: number } } | [transaction: n
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 document.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -206,7 +206,7 @@ document.head = (args: { transaction: number | { id: number } } | [transaction: 
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 const documentForm = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -216,7 +216,7 @@ const documentForm = (args: { transaction: number | { id: number } } | [transact
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 documentForm.get = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -226,7 +226,7 @@ documentForm.get = (args: { transaction: number | { id: number } } | [transactio
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::document
-* @see app/Http/Controllers/StockTransactionController.php:184
+* @see app/Http/Controllers/StockTransactionController.php:324
 * @route '/stock-transactions/{transaction}/document'
 */
 documentForm.head = (args: { transaction: number | { id: number } } | [transaction: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -243,7 +243,7 @@ document.form = documentForm
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 export const evidence = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -258,7 +258,7 @@ evidence.definition = {
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 evidence.url = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions) => {
@@ -286,7 +286,7 @@ evidence.url = (args: { transaction: number | { id: number }, kind: string | num
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 evidence.get = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -296,7 +296,7 @@ evidence.get = (args: { transaction: number | { id: number }, kind: string | num
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 evidence.head = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -306,7 +306,7 @@ evidence.head = (args: { transaction: number | { id: number }, kind: string | nu
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 const evidenceForm = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -316,7 +316,7 @@ const evidenceForm = (args: { transaction: number | { id: number }, kind: string
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 evidenceForm.get = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -326,7 +326,7 @@ evidenceForm.get = (args: { transaction: number | { id: number }, kind: string |
 
 /**
 * @see \App\Http\Controllers\StockTransactionController::evidence
-* @see app/Http/Controllers/StockTransactionController.php:229
+* @see app/Http/Controllers/StockTransactionController.php:377
 * @route '/stock-transactions/{transaction}/evidence/{kind}'
 */
 evidenceForm.head = (args: { transaction: number | { id: number }, kind: string | number } | [transaction: number | { id: number }, kind: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

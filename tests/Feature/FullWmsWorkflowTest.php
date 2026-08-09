@@ -87,6 +87,33 @@ class FullWmsWorkflowTest extends TestCase
         $this->actingAs($admin)->get('/operations/master-data')->assertOk();
     }
 
+    public function test_master_items_are_separated_by_warehouse_type_and_paginated_by_ten(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Superadmin]);
+        foreach (range(1, 12) as $index) {
+            Item::create(['code' => "DRY-{$index}", 'name' => "Dry {$index}", 'base_uom' => 'PCS', 'warehouse_type' => 'dry']);
+        }
+        foreach (range(1, 3) as $index) {
+            Item::create(['code' => "WET-{$index}", 'name' => "Wet {$index}", 'base_uom' => 'PCS', 'warehouse_type' => 'wet']);
+        }
+        Item::create(['code' => 'BOTH-1', 'name' => 'Both', 'base_uom' => 'PCS', 'warehouse_type' => 'both']);
+
+        $this->actingAs($user)->get('/operations/master-data?master=item&item_warehouse=dry')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialItemWarehouse', 'dry')
+                ->where('records.items.per_page', 10)
+                ->where('records.items.total', 13)
+                ->has('records.items.data', 10));
+
+        $this->actingAs($user)->get('/operations/master-data?master=item&item_warehouse=wet')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialItemWarehouse', 'wet')
+                ->where('records.items.total', 4)
+                ->has('records.items.data', 4));
+    }
+
     public function test_warehouse_admin_cannot_access_or_create_master_data(): void
     {
         $admin = User::factory()->create(['role' => UserRole::WarehouseAdminDry]);
@@ -193,6 +220,34 @@ class FullWmsWorkflowTest extends TestCase
                 ->where('stocks.0.warehouse.id', $dryUnit->id));
 
             $this->actingAs($user)->get('/warehouse-stocks?warehouse_id='.$wetUnit->id)->assertForbidden();
+        }
+    }
+
+    public function test_global_warehouse_manager_sees_both_main_warehouse_networks(): void
+    {
+        $dry = Warehouse::create(['code' => 'WH-DRY-GLOBAL', 'name' => 'Gudang Utama Kering', 'type' => 'main']);
+        $wet = Warehouse::create(['code' => 'WH-WET-GLOBAL', 'name' => 'Gudang Utama Basah', 'type' => 'main']);
+        $dryUnit = Warehouse::create(['code' => 'UNIT-DRY-GLOBAL', 'name' => 'Unit Kering', 'type' => 'unit', 'main_warehouse_id' => $dry->id]);
+        $wetUnit = Warehouse::create(['code' => 'UNIT-WET-GLOBAL', 'name' => 'Unit Basah', 'type' => 'unit', 'main_warehouse_id' => $wet->id]);
+        $item = Item::create(['code' => 'GLOBAL-SCOPE-ITEM', 'name' => 'Item Scope Global', 'base_uom' => 'PCS']);
+        foreach ([$dry, $wet, $dryUnit, $wetUnit] as $index => $warehouse) {
+            CurrentStock::create(['warehouse_id' => $warehouse->id, 'item_id' => $item->id, 'qty_on_hand' => $index + 1]);
+        }
+        $manager = User::factory()->create(['role' => UserRole::WarehouseManager, 'warehouse_id' => null]);
+
+        $this->actingAs($manager)->get('/warehouse-stocks')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('canViewAll', false)
+            ->where('canFilterWarehouse', true)
+            ->has('warehouses', 4)
+            ->has('stocks', 4)
+            ->where('summary.onHand', 10));
+
+        foreach ([$dry, $wet, $dryUnit, $wetUnit] as $warehouse) {
+            $this->actingAs($manager)->get('/warehouse-stocks?warehouse_id='.$warehouse->id)
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->has('stocks', 1)
+                    ->where('stocks.0.warehouse.id', $warehouse->id));
         }
     }
 
@@ -373,7 +428,7 @@ class FullWmsWorkflowTest extends TestCase
 
         $this->actingAs($admin)->post('/operations/inventory-control/adjustments', [
             'warehouse_id' => $other->id, 'type' => 'correction', 'reason' => 'Uji scope', 'approver_id' => $ownManager->id,
-            'details' => [['item_id' => $item->id, 'qty' => 1]],
+            'details' => [['item_id' => $item->id, 'qty' => 1, 'unit_price' => 100]],
         ])->assertRedirect();
 
         $this->assertDatabaseHas('stock_adjustments', ['warehouse_id' => $own->id, 'assigned_approver_id' => $ownManager->id]);
@@ -454,14 +509,14 @@ class FullWmsWorkflowTest extends TestCase
             'warehouse_id' => $warehouse->id,
             'type' => 'correction',
             'reason' => 'Tambah dua karton hasil koreksi',
-            'details' => [['item_id' => $item->id, 'uom_id' => $carton->id, 'qty' => 2]],
+            'details' => [['item_id' => $item->id, 'uom_id' => $carton->id, 'qty' => 2, 'unit_price' => 500]],
         ])->assertRedirect();
 
         $adjustment = StockAdjustment::firstOrFail();
         $detail = $adjustment->details()->firstOrFail();
         $this->assertSame(24.0, (float) $detail->qty_adjustment);
         $this->assertSame($pcs->id, $detail->uom_id);
-        $this->assertNull($detail->unit_price);
+        $this->assertSame(500.0, (float) $detail->unit_price);
 
         $approval = WorkflowApproval::where('module', 'stock_adjustment')->where('transaction_id', $adjustment->id)->firstOrFail();
         app(InventoryWorkflowService::class)->act($approval, $manager, 'approved');
@@ -469,5 +524,39 @@ class FullWmsWorkflowTest extends TestCase
         $stock = CurrentStock::firstOrFail();
         $this->assertSame(124.0, (float) $stock->qty_on_hand);
         $this->assertSame(500.0, (float) $stock->average_cost);
+    }
+
+    public function test_global_warehouse_manager_can_view_and_act_for_scoped_main_manager(): void
+    {
+        $warehouse = Warehouse::create(['code' => 'WH-GLOBAL-ACT', 'name' => 'Gudang Utama Kering', 'type' => 'main']);
+        $creator = User::factory()->create(['role' => UserRole::WarehouseAdminDry, 'warehouse_id' => $warehouse->id]);
+        $scopedManager = User::factory()->create(['role' => UserRole::UnitManager, 'warehouse_id' => $warehouse->id]);
+        $globalManager = User::factory()->create(['role' => UserRole::WarehouseManager, 'warehouse_id' => null]);
+        $adjustment = StockAdjustment::create([
+            'number' => 'ADJ-GLOBAL-ACT', 'type' => 'correction', 'valuation_method' => 'moving_average',
+            'warehouse_id' => $warehouse->id, 'adjustment_date' => now(), 'status' => 'waiting_approval',
+            'reason' => 'Uji representasi global', 'created_by' => $creator->id, 'assigned_approver_id' => $scopedManager->id,
+        ]);
+        $approval = WorkflowApproval::create([
+            'module' => 'stock_adjustment', 'transaction_id' => $adjustment->id,
+            'transaction_no' => $adjustment->number, 'status' => 'pending',
+            'current_level' => 1, 'total_levels' => 1, 'created_by' => $creator->id,
+        ]);
+        $step = $approval->steps()->create([
+            'level' => 1, 'stage_key' => 'warehouse_manager', 'stage_label' => 'Approval Manajer Gudang Kering',
+            'approver_id' => $scopedManager->id, 'status' => 'pending',
+        ]);
+
+        $this->actingAs($globalManager)->get(route('approvals.index'))
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('workflowApprovals', 1)
+            ->where('workflowApprovals.0.id', $approval->id));
+        $this->actingAs($globalManager)->post(route('workflow-approvals.act', $approval), [
+            'action' => 'rejected', 'remarks' => 'Ditolak oleh manajer global.',
+        ])->assertRedirect();
+
+        $this->assertSame('rejected', $approval->fresh()->status);
+        $this->assertSame('rejected', $adjustment->fresh()->status);
+        $this->assertSame($globalManager->id, $step->fresh()->acted_by);
     }
 }

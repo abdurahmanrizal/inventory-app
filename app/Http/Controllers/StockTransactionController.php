@@ -6,11 +6,16 @@ use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Enums\UserRole;
 use App\Models\CurrentStock;
+use App\Models\InventorySetting;
 use App\Models\Item;
+use App\Models\StockCostLayer;
 use App\Models\StockLedger;
 use App\Models\StockTransaction;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Notifications\StockTransactionApprovalNotification;
+use App\Services\InventoryValuationService;
+use App\Support\ApproverResolver;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -44,7 +49,11 @@ class StockTransactionController extends Controller
             $transactions->where('type', TransactionType::StockIn)
                 ->when(! $isSuperadmin, fn ($query) => $query->where('destination_warehouse_id', $user->warehouse_id));
         } else {
-            $transactions->where('type', TransactionType::StockOut)
+            $transactions->where(fn ($query) => $query
+                ->where('type', TransactionType::StockOut)
+                ->orWhere(fn ($query) => $query
+                    ->where('type', TransactionType::Transfer)
+                    ->where('request_kind', 'unit_return')))
                 ->when(! $isSuperadmin, fn ($query) => $query->where('source_warehouse_id', $user->warehouse_id));
         }
 
@@ -53,17 +62,52 @@ class StockTransactionController extends Controller
             $warehouses->whereKey($user->warehouse_id);
         }
 
-        $items = Item::where('is_active', true);
-        if ($role === UserRole::WarehouseAdminDry) {
-            $items->whereIn('warehouse_type', ['dry', 'both']);
-        } elseif ($role === UserRole::WarehouseAdminWet) {
-            $items->whereIn('warehouse_type', ['wet', 'both']);
+        if ($type === TransactionType::StockIn->value) {
+            $itemWarehouseType = match ($role) {
+                UserRole::WarehouseAdminDry => 'dry',
+                UserRole::WarehouseAdminWet => 'wet',
+                default => null,
+            };
+            $availableItems = Item::query()
+                ->where('is_active', true)
+                ->when($itemWarehouseType, fn ($query) => $query->whereIn('warehouse_type', [$itemWarehouseType, 'both']))
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'base_uom', 'warehouse_type'])
+                ->map(fn (Item $item) => [
+                    ...$item->only(['id', 'code', 'name', 'base_uom', 'warehouse_type']),
+                    'warehouse_ids' => [],
+                    'available_qty' => 0,
+                ]);
+        } else {
+            $stockWarehouseIds = $user->warehouse_id
+                ? collect([$user->warehouse_id])
+                : (clone $warehouses)->pluck('id');
+            $availableItems = CurrentStock::query()
+                ->with('item:id,code,name,base_uom,warehouse_type')
+                ->whereHas('item', fn ($query) => $query->where('is_active', true))
+                ->whereIn('warehouse_id', $stockWarehouseIds)
+                ->whereColumn('qty_on_hand', '>', 'qty_reserved')
+                ->get()
+                ->groupBy('item_id')
+                ->map(function ($stocks) {
+                    $item = $stocks->first()->item;
+
+                    return [
+                        'id' => $item->id,
+                        'code' => $item->code,
+                        'name' => $item->name,
+                        'base_uom' => $item->base_uom,
+                        'warehouse_type' => $item->warehouse_type,
+                        'warehouse_ids' => $stocks->pluck('warehouse_id')->unique()->values(),
+                        'available_qty' => $stocks->sum(fn (CurrentStock $stock) => $stock->qty_available),
+                    ];
+                })->values();
         }
 
         return Inertia::render($type === 'stock_in' ? 'StockIn/Index' : 'StockOut/Index', [
             'transactions' => $transactions->paginate(15)->withQueryString(),
             'warehouses' => $warehouses->get(['id', 'name', 'type', 'main_warehouse_id']),
-            'items' => $items->get(['id', 'code', 'name', 'base_uom']),
+            'items' => $availableItems,
             'stockInMode' => 'supplier_receipt',
             'userWarehouse' => $user->warehouse,
             'access' => ['isSuperadmin' => $isSuperadmin, 'isUnitAdmin' => $isUnitAdmin],
@@ -72,10 +116,17 @@ class StockTransactionController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(
+            $request->user()->hasPermission('stock.in') || $request->user()->hasPermission('stock.out'),
+            403,
+        );
+        $unitCostRules = $request->input('type') === TransactionType::StockIn->value
+            ? ['required', 'numeric', 'gt:0']
+            : ['nullable', 'numeric', 'gte:0'];
         $data = $request->validate([
             'type' => ['required', Rule::enum(TransactionType::class)],
-            'request_kind' => ['nullable', Rule::in(['supplier_receipt', 'unit_request'])],
-            'stock_out_reason' => ['nullable', Rule::in(['operational', 'shrinkage', 'expired', 'damaged', 'waste', 'return', 'other'])],
+            'request_kind' => ['nullable', Rule::in(['supplier_receipt', 'unit_request', 'unit_return'])],
+            'stock_out_reason' => ['nullable', Rule::in(['operational', 'waste', 'return', 'restitution'])],
             'source_warehouse_id' => ['nullable', 'exists:warehouses,id'],
             'destination_warehouse_id' => ['nullable', 'exists:warehouses,id'],
             'supplier_name' => ['nullable', 'string', 'max:150'],
@@ -84,7 +135,7 @@ class StockTransactionController extends Controller
             'delivery_proof_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=8000,max_height=8000'],
             'document_date' => ['required', 'date'], 'notes' => ['nullable', 'string'],
             'details' => ['required', 'array', 'min:1'], 'details.*.item_id' => ['required', 'exists:items,id'],
-            'details.*.qty' => ['required', 'numeric', 'gt:0'], 'details.*.unit_cost' => ['nullable', 'numeric', 'gte:0'],
+            'details.*.qty' => ['required', 'numeric', 'gt:0'], 'details.*.unit_cost' => $unitCostRules,
             'details.*.batch_no' => ['nullable', 'string', 'max:100'], 'details.*.expired_at' => ['nullable', 'date'],
         ]);
 
@@ -105,6 +156,20 @@ class StockTransactionController extends Controller
                 $data['destination_warehouse_id'] = $user->warehouse_id;
             }
             abort_unless($data['destination_warehouse_id'] ?? null, 422, 'Gudang tujuan wajib dipilih.');
+            $allowedItemWarehouseType = match ($role) {
+                UserRole::WarehouseAdminDry => 'dry',
+                UserRole::WarehouseAdminWet => 'wet',
+                default => null,
+            };
+            if ($allowedItemWarehouseType) {
+                $invalidItemExists = Item::query()
+                    ->whereIn('id', collect($data['details'])->pluck('item_id'))
+                    ->where(fn ($query) => $query
+                        ->where('is_active', false)
+                        ->orWhereNotIn('warehouse_type', [$allowedItemWarehouseType, 'both']))
+                    ->exists();
+                abort_if($invalidItemExists, 422, 'Item tidak sesuai dengan jenis gudang tujuan.');
+            }
             $approvalWarehouseId = $data['destination_warehouse_id'];
         } else {
             abort_unless($isSuperadmin || $isWarehouseAdmin || $isUnitAdmin, 403);
@@ -120,13 +185,25 @@ class StockTransactionController extends Controller
             $approvalWarehouseId = $data['source_warehouse_id'];
         }
 
-        $manager = User::query()
-            ->where('role', UserRole::UnitManager)
-            ->where('warehouse_id', $approvalWarehouseId)
-            ->orderBy('name')
-            ->first();
-        abort_unless($manager, 422, 'Manajer untuk gudang terkait belum ditentukan.');
-        $approverIds = [$manager->id];
+        $isUnitReturn = $type === TransactionType::StockOut
+            && ($data['stock_out_reason'] ?? null) === 'restitution';
+        if ($isUnitReturn) {
+            abort_unless($isUnitAdmin, 422, 'Pengembalian ke gudang utama hanya dapat diajukan dari gudang unit.');
+            $destinationWarehouseId = $this->unitReturnDestination($user->warehouse, $data['details']);
+            $data['type'] = TransactionType::Transfer->value;
+            $data['request_kind'] = 'unit_return';
+            $data['source_warehouse_id'] = $user->warehouse_id;
+            $data['destination_warehouse_id'] = $destinationWarehouseId;
+            $type = TransactionType::Transfer;
+        }
+
+        $approvalWarehouseIds = $isUnitReturn
+            ? [$user->warehouse_id, $data['destination_warehouse_id']]
+            : [$approvalWarehouseId];
+        $approvers = ApproverResolver::forWarehouses($approvalWarehouseIds);
+        $missingWarehouseIds = array_diff(array_unique($approvalWarehouseIds), array_keys($approvers));
+        abort_unless($missingWarehouseIds === [], 422, 'Manajer untuk gudang terkait belum ditentukan.');
+        $approverIds = array_values(array_map(fn (int $id) => $approvers[$id]->id, array_unique($approvalWarehouseIds)));
         $assignedApproverId = $approverIds[0];
 
         if ($requestKind === 'supplier_receipt') {
@@ -176,41 +253,112 @@ class StockTransactionController extends Controller
             throw $exception;
         }
 
+        if ($type === TransactionType::StockIn) {
+            $mainWarehouse = Warehouse::findOrFail($tx->destination_warehouse_id);
+            $recipientIds = User::query()
+                ->where('role', UserRole::WarehouseManager)
+                ->pluck('id')
+                ->push($assignedApproverId)
+                ->unique();
+            $recipientIds->each(fn (int $recipientId) => User::find($recipientId)?->notify(
+                new StockTransactionApprovalNotification(
+                    transactionId: $tx->id,
+                    transactionNo: $tx->number,
+                    mainWarehouseId: $mainWarehouse->id,
+                    mainWarehouseName: $mainWarehouse->name,
+                ),
+            ));
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => "Transaksi {$tx->number} berhasil diajukan ke manajer."]);
 
         return back();
     }
 
-    public function document(StockTransaction $transaction)
+    private function unitReturnDestination(Warehouse $unitWarehouse, array $details): int
     {
-        $transaction->load(['details.item:id,code,name,base_uom', 'sourceWarehouse:id,code,name', 'destinationWarehouse:id,code,name', 'creator:id,name', 'approver:id,name']);
-        if ($transaction->type === TransactionType::StockOut) {
+        abort_unless($unitWarehouse->type === 'unit', 422, 'Gudang sumber pengembalian harus berupa gudang unit.');
+        $fallbackId = $unitWarehouse->main_warehouse_id;
+        abort_unless($fallbackId, 422, 'Gudang utama untuk unit belum ditentukan.');
+
+        if (InventorySetting::current()->valuation_method->value !== 'fifo') {
+            return (int) $fallbackId;
+        }
+
+        $destinationIds = collect($details)->flatMap(function (array $detail) use ($unitWarehouse, $fallbackId) {
+            $layers = StockCostLayer::query()
+                ->where('warehouse_id', $unitWarehouse->id)
+                ->where('item_id', $detail['item_id'])
+                ->when($detail['batch_no'] ?? null, fn ($query, $batch) => $query->where('batch_no', $batch))
+                ->where('remaining_qty', '>', 0)
+                ->orderBy('received_at')->orderBy('id')->get();
+            $remaining = (float) $detail['qty'];
+            $origins = collect();
+            foreach ($layers as $layer) {
+                if ($remaining <= 0) {
+                    break;
+                }
+                $take = min($remaining, (float) $layer->remaining_qty);
+                $root = $layer;
+                while ($root->source_cost_layer_id) {
+                    $source = StockCostLayer::find($root->source_cost_layer_id);
+                    if (! $source) {
+                        break;
+                    }
+                    $root = $source;
+                }
+                $origin = Warehouse::find($root->warehouse_id);
+                $origins->push($origin?->type === 'main' ? $origin->id : $fallbackId);
+                $remaining -= $take;
+            }
+            abort_if($remaining > 0.000001, 422, 'Stok FIFO untuk pengembalian tidak mencukupi.');
+
+            return $origins;
+        })->unique()->values();
+
+        abort_if($destinationIds->count() > 1, 422, 'Item pengembalian berasal dari beberapa gudang utama. Pisahkan menjadi transaksi berbeda.');
+
+        return (int) ($destinationIds->first() ?? $fallbackId);
+    }
+
+    public function document(StockTransaction $transaction, InventoryValuationService $valuation)
+    {
+        $transaction->load([
+            'details.item:id,code,name,base_uom',
+            'sourceWarehouse:id,code,name',
+            'destinationWarehouse:id,code,name',
+            'creator:id,name',
+            'approver:id,name',
+            'approvals' => fn ($query) => $query->with('approver:id,name')->orderBy('level'),
+        ]);
+        $isInventoryIssue = $transaction->type === TransactionType::StockOut
+            || ($transaction->type === TransactionType::Transfer && $transaction->request_kind === 'unit_return');
+        if ($isInventoryIssue) {
             $postedCosts = StockLedger::query()
                 ->where('stock_transaction_id', $transaction->id)
                 ->where('direction', 'out')
                 ->orderBy('id')
                 ->get()
-                ->keyBy(fn (StockLedger $ledger) => implode('|', [
+                ->groupBy(fn (StockLedger $ledger) => implode('|', [
                     $ledger->item_id,
                     $ledger->batch_no ?? '',
                 ]));
-            $currentCosts = CurrentStock::query()
-                ->where('warehouse_id', $transaction->source_warehouse_id)
-                ->whereIn('item_id', $transaction->details->pluck('item_id')->unique())
-                ->orderBy('id')
-                ->get()
-                ->keyBy(fn (CurrentStock $stock) => implode('|', [
-                    $stock->item_id,
-                    $stock->batch_no ?? '',
-                ]));
 
-            $transaction->details->each(function ($detail) use ($postedCosts, $currentCosts) {
+            $transaction->details->each(function ($detail) use ($postedCosts, $transaction, $valuation) {
                 $key = implode('|', [$detail->item_id, $detail->batch_no ?? '']);
+                $posted = $postedCosts->get($key, collect());
+                $postedQty = $posted->sum(fn (StockLedger $ledger) => (float) $ledger->qty);
+                $postedUnitCost = $postedQty > 0
+                    ? $posted->sum(fn (StockLedger $ledger) => (float) $ledger->qty * (float) $ledger->unit_cost) / $postedQty
+                    : null;
                 $detail->setAttribute(
                     'document_hpp',
-                    $postedCosts->get($key)?->unit_cost
-                        ?? $currentCosts->get($key)?->average_cost
-                        ?? $detail->unit_cost,
+                    $postedUnitCost ?? $valuation->estimatedIssueUnitCost(
+                        $transaction->source_warehouse_id,
+                        $detail->item_id,
+                        (float) $detail->qty,
+                        $detail->batch_no,
+                    ),
                 );
             });
         }

@@ -1,9 +1,17 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck -- Legacy WMS page migrated from JSX; type incrementally.
 import { Head, useForm } from "@inertiajs/react";
-import { AlertCircle, CheckCircle2, PackageMinus, Plus, Trash2, Warehouse } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  PackageMinus,
+  Plus,
+  Trash2,
+  Warehouse,
+} from "lucide-react";
 import { useState } from "react";
 import ConfirmActionDialog from "../../components/confirm-action-dialog";
+import SearchableItemSelect from "../../components/searchable-item-select";
 import TransactionHistory from "../../components/TransactionHistory";
 import AppLayout from "../../layouts/AppLayout";
 
@@ -18,7 +26,13 @@ const emptyDetail = () => ({
   expired_at: "",
 });
 
-export default function Index({ transactions, warehouses, items, userWarehouse }) {
+export default function Index({
+  transactions,
+  warehouses,
+  items,
+  userWarehouse,
+  access,
+}) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const form = useForm({
     type: "stock_out",
@@ -54,18 +68,30 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
   };
 
   const errors = Object.values(form.errors);
+  const isUnitReturn = form.data.stock_out_reason === "restitution";
+  const availableItems = items.filter(
+    (item) =>
+      !form.data.source_warehouse_id ||
+      item.warehouse_ids?.some(
+        (warehouseId) =>
+          String(warehouseId) === String(form.data.source_warehouse_id),
+      ),
+  );
 
   return (
     <AppLayout title="Stock Out">
       <Head title="Stock Out" />
 
       <div className="mb-6">
-        <p className="text-sm font-medium text-blue-700">Pergerakan persediaan</p>
+        <p className="text-sm font-medium text-blue-700">
+          Pergerakan persediaan
+        </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
           Buat pengajuan barang keluar
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Pengajuan stock out akan melalui approval berjenjang dari manajer unit terkait sebelum stok gudang dipotong.
+          Pengajuan stock out akan melalui approval berjenjang dari manajer unit
+          terkait sebelum stok gudang dipotong.
         </p>
       </div>
 
@@ -74,7 +100,9 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
           <div className="flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
             <AlertCircle className="mt-0.5 shrink-0" size={19} />
             <div>
-              <p className="text-sm font-semibold">Periksa kembali data transaksi</p>
+              <p className="text-sm font-semibold">
+                Periksa kembali data transaksi
+              </p>
               <ul className="mt-1 list-inside list-disc text-xs leading-5">
                 {errors.map((error, index) => (
                   <li key={index}>{error}</li>
@@ -86,7 +114,9 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
 
         <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
           <div className="border-b border-slate-100 p-5 sm:px-6">
-            <p className="text-xs font-semibold text-slate-700">Jenis transaksi</p>
+            <p className="text-xs font-semibold text-slate-700">
+              Jenis transaksi
+            </p>
             <div className="mt-3 inline-flex rounded-xl bg-slate-100 p-1.5">
               <button
                 type="button"
@@ -104,14 +134,18 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
                 Gudang asal <b className="text-rose-500">*</b>
               </span>
               {userWarehouse?.id ? (
-                <div className={`${fieldClass} flex items-center bg-slate-50 text-slate-600`}>
+                <div
+                  className={`${fieldClass} flex items-center bg-slate-50 text-slate-600`}
+                >
                   {userWarehouse?.name || "Gudang akun belum ditentukan"}
                 </div>
               ) : (
                 <select
                   className={fieldClass}
                   value={form.data.source_warehouse_id}
-                  onChange={(event) => form.setData("source_warehouse_id", event.target.value)}
+                  onChange={(event) =>
+                    form.setData("source_warehouse_id", event.target.value)
+                  }
                 >
                   <option value="">Pilih gudang asal</option>
                   {warehouses.map((warehouse) => (
@@ -129,25 +163,34 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
               <select
                 className={fieldClass}
                 value={form.data.stock_out_reason}
-                onChange={(event) => form.setData("stock_out_reason", event.target.value)}
+                onChange={(event) =>
+                  form.setData("stock_out_reason", event.target.value)
+                }
               >
                 <option value="operational">Pemakaian operasional</option>
-                <option value="shrinkage">Penyusutan</option>
-                <option value="expired">Kedaluwarsa</option>
-                <option value="damaged">Rusak</option>
                 <option value="waste">Waste / terbuang</option>
-                <option value="return">Retur</option>
-                <option value="other">Lainnya</option>
+                {!access?.isUnitAdmin && <option value="return">Retur ke supplier</option>}
+                {access?.isUnitAdmin && <option value="restitution">Pengembalian ke gudang utama</option>}
               </select>
             </label>
             <label className="space-y-2">
-              <span className="text-xs font-semibold text-slate-700">Penerima / tujuan</span>
-              <input
-                className={fieldClass}
-                placeholder="Unit atau pihak penerima"
-                value={form.data.supplier_name}
-                onChange={(event) => form.setData("supplier_name", event.target.value)}
-              />
+              <span className="text-xs font-semibold text-slate-700">
+                Penerima / tujuan
+              </span>
+              {isUnitReturn ? (
+                <div className={`${fieldClass} flex items-center bg-emerald-50/60 text-emerald-800`}>
+                  Ditentukan otomatis dari sumber stok
+                </div>
+              ) : (
+                <input
+                  className={fieldClass}
+                  placeholder="Unit atau pihak penerima"
+                  value={form.data.supplier_name}
+                  onChange={(event) =>
+                    form.setData("supplier_name", event.target.value)
+                  }
+                />
+              )}
             </label>
             <label className="space-y-2">
               <span className="text-xs font-semibold text-slate-700">
@@ -157,13 +200,17 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
                 type="date"
                 className={fieldClass}
                 value={form.data.document_date}
-                onChange={(event) => form.setData("document_date", event.target.value)}
+                onChange={(event) =>
+                  form.setData("document_date", event.target.value)
+                }
               />
             </label>
           </div>
           <div className="grid gap-5 px-5 pb-5 sm:px-6 md:grid-cols-2">
             <label className="space-y-2 md:col-span-2">
-              <span className="text-xs font-semibold text-slate-700">Catatan</span>
+              <span className="text-xs font-semibold text-slate-700">
+                Catatan
+              </span>
               <input
                 className={fieldClass}
                 placeholder="Keperluan transaksi"
@@ -181,13 +228,19 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
                 <Warehouse size={18} />
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">Detail barang</h3>
-                <p className="text-xs text-slate-500">Isi item sesuai batch stok yang tersedia.</p>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Detail barang
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Isi item sesuai batch stok yang tersedia.
+                </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => form.setData("details", [...form.data.details, emptyDetail()])}
+              onClick={() =>
+                form.setData("details", [...form.data.details, emptyDetail()])
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
               <Plus size={15} />
@@ -196,7 +249,10 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
           </div>
           <div className="space-y-3 p-4 sm:p-6">
             {form.data.details.map((detail, index) => (
-              <div key={index} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+              <div
+                key={index}
+                className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                     Item {String(index + 1).padStart(2, "0")}
@@ -205,7 +261,14 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
                     aria-label="Hapus item"
                     type="button"
                     disabled={form.data.details.length === 1}
-                    onClick={() => form.setData("details", form.data.details.filter((_, position) => position !== index))}
+                    onClick={() =>
+                      form.setData(
+                        "details",
+                        form.data.details.filter(
+                          (_, position) => position !== index,
+                        ),
+                      )
+                    }
                     className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-30"
                   >
                     <Trash2 size={17} />
@@ -213,38 +276,48 @@ export default function Index({ transactions, warehouses, items, userWarehouse }
                 </div>
                 <div className="grid gap-4 md:grid-cols-12">
                   <label className="space-y-2 md:col-span-6">
-                    <span className="text-xs font-semibold text-slate-600">Produk</span>
-                    <select
-                      className={fieldClass}
+                    <span className="text-xs font-semibold text-slate-600">
+                      Produk
+                    </span>
+                    <SearchableItemSelect
                       value={detail.item_id}
-                      onChange={(event) => setDetail(index, "item_id", event.target.value)}
-                    >
-                      <option value="">Pilih produk</option>
-                      {items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.code} - {item.name} ({item.base_uom})
-                        </option>
-                      ))}
-                    </select>
+                      items={availableItems}
+                      onChange={(value) => setDetail(index, "item_id", value)}
+                      placeholder="Cari kode atau nama produk"
+                      entityLabel="produk"
+                    />
+                    {detail.item_id && (
+                      <span className="text-[11px] text-slate-500">
+                        Stok tersedia: {availableItems.find((item) => String(item.id) === String(detail.item_id))?.available_qty ?? 0} {availableItems.find((item) => String(item.id) === String(detail.item_id))?.base_uom ?? ""}
+                      </span>
+                    )}
                   </label>
                   <label className="space-y-2 md:col-span-3">
-                    <span className="text-xs font-semibold text-slate-600">Kuantitas</span>
+                    <span className="text-xs font-semibold text-slate-600">
+                      Kuantitas
+                    </span>
                     <input
                       type="number"
                       min="0.001"
                       step=".001"
                       className={fieldClass}
                       value={detail.qty}
-                      onChange={(event) => setDetail(index, "qty", event.target.value)}
+                      onChange={(event) =>
+                        setDetail(index, "qty", event.target.value)
+                      }
                     />
                   </label>
                   <label className="space-y-2 md:col-span-3">
-                    <span className="text-xs font-semibold text-slate-600">Nomor batch</span>
+                    <span className="text-xs font-semibold text-slate-600">
+                      Nomor batch
+                    </span>
                     <input
                       className={fieldClass}
                       placeholder="Sesuai saldo stok"
                       value={detail.batch_no}
-                      onChange={(event) => setDetail(index, "batch_no", event.target.value)}
+                      onChange={(event) =>
+                        setDetail(index, "batch_no", event.target.value)
+                      }
                     />
                   </label>
                 </div>

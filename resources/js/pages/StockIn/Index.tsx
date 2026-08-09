@@ -27,7 +27,7 @@ const fieldClass =
 const emptyDetail = () => ({
   item_id: "",
   qty: 1,
-  unit_cost: 0,
+  unit_cost: "",
   batch_no: "",
   expired_at: "",
 });
@@ -173,7 +173,7 @@ export default function Index({
     type: isUnitRequest ? "transfer" : "stock_in",
     request_kind: stockInMode,
     source_warehouse_id: "",
-    destination_warehouse_id: isUnitRequest ? userWarehouse?.id : "",
+    destination_warehouse_id: userWarehouse?.id || "",
     supplier_name: "",
     receipt_image: null,
     payment_proof_image: null,
@@ -415,7 +415,7 @@ export default function Index({
                 </div>
                 <div className="grid gap-4 md:grid-cols-12">
                   <label
-                    className={`space-y-2 ${isUnitRequest ? "md:col-span-5" : "md:col-span-4"}`}
+                    className={`space-y-2 ${isUnitRequest ? "md:col-span-5" : "md:col-span-3"}`}
                   >
                     <span className="text-xs font-semibold text-slate-600">
                       Produk
@@ -425,6 +425,22 @@ export default function Index({
                       items={items}
                       placeholder="Cari kode atau nama produk"
                       onChange={(itemId) => setDetail(index, "item_id", itemId)}
+                    />
+                  </label>
+                  <label className="space-y-2 md:col-span-1">
+                    <span className="text-xs font-semibold text-slate-600">
+                      Satuan
+                    </span>
+                    <input
+                      readOnly
+                      aria-label={`Satuan dasar item ${index + 1}`}
+                      className={`${fieldClass} cursor-not-allowed bg-slate-100 font-semibold text-slate-600`}
+                      value={
+                        items.find(
+                          (item) => String(item.id) === String(detail.item_id),
+                        )?.base_uom || ""
+                      }
+                      placeholder="—"
                     />
                   </label>
                   {!isUnitRequest && (
@@ -446,12 +462,14 @@ export default function Index({
                   )}
                   <label className="space-y-2 md:col-span-2">
                     <span className="text-xs font-semibold text-slate-600">
-                      HPP / unit
+                      HPP / unit <b className="text-rose-500">*</b>
                     </span>
-                    <input
-                      type="number"
-                      min="0"
-                      className={fieldClass}
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="0.01"
+                        className={fieldClass}
                       value={detail.unit_cost}
                       onChange={(event) =>
                         setDetail(index, "unit_cost", event.target.value)
