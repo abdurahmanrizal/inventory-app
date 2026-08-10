@@ -206,6 +206,7 @@ export default function Operations({
   initialMaster,
   valuationMethod,
   initialItemWarehouse,
+  initialItemSearch,
 }: any) {
   const [kind, setKind] = useState(
     module === "purchasing"
@@ -1656,6 +1657,7 @@ export default function Operations({
             onEdit={startEdit}
             masterKind={kind}
             initialItemWarehouse={initialItemWarehouse}
+            initialItemSearch={initialItemSearch}
           />
         </Card>
       </div>
@@ -1663,10 +1665,23 @@ export default function Operations({
   );
 }
 
-function RecordList({ module, records, onEdit, masterKind, initialItemWarehouse }: any) {
+function RecordList({
+  module,
+  records,
+  onEdit,
+  masterKind,
+  initialItemWarehouse,
+  initialItemSearch,
+}: any) {
   if (module === "master-data") {
     return (
-      <MasterDataList records={records} onEdit={onEdit} kind={masterKind} initialItemWarehouse={initialItemWarehouse} />
+      <MasterDataList
+        records={records}
+        onEdit={onEdit}
+        kind={masterKind}
+        initialItemWarehouse={initialItemWarehouse}
+        initialItemSearch={initialItemSearch}
+      />
     );
   }
 
@@ -2099,8 +2114,38 @@ function RequestStockList({ records }: any) {
   );
 }
 
-function MasterDataList({ records, onEdit, kind, initialItemWarehouse }: any) {
+function MasterDataList({
+  records,
+  onEdit,
+  kind,
+  initialItemWarehouse,
+  initialItemSearch,
+}: any) {
+  const [itemSearch, setItemSearch] = useState(initialItemSearch || "");
+  const initialItemSearchRender = useRef(true);
   const paginatedItems = records.items?.data ? records.items : null;
+
+  useEffect(() => {
+    if (initialItemSearchRender.current) {
+      initialItemSearchRender.current = false;
+
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      router.get(
+        "/operations/master-data",
+        {
+          master: "item",
+          item_warehouse: initialItemWarehouse,
+          item_search: itemSearch.trim() || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
+      );
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [itemSearch, initialItemWarehouse]);
   const groupMap: Record<string, any> = {
     supplier: [
       "Supplier",
@@ -2133,24 +2178,48 @@ function MasterDataList({ records, onEdit, kind, initialItemWarehouse }: any) {
   return (
     <div className="space-y-5">
       {kind === "item" && (
-        <div className="flex gap-2 rounded-xl bg-slate-100 p-1">
-          {[
-            ["dry", "Gudang Utama Kering"],
-            ["wet", "Gudang Utama Basah"],
-          ].map(([value, label]) => (
-            <Link
-              key={value}
-              href={`/operations/master-data?master=item&item_warehouse=${value}`}
-              preserveScroll
-              className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold transition ${
-                initialItemWarehouse === value
-                  ? "bg-white text-emerald-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
+        <div className="space-y-3">
+          <div className="flex gap-2 rounded-xl bg-slate-100 p-1">
+            {[
+              ["dry", "Gudang Utama Kering"],
+              ["wet", "Gudang Utama Basah"],
+            ].map(([value, label]) => (
+              <Link
+                key={value}
+                href={`/operations/master-data?master=item&item_warehouse=${value}${itemSearch.trim() ? `&item_search=${encodeURIComponent(itemSearch.trim())}` : ""}`}
+                preserveScroll
+                className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold transition ${
+                  initialItemWarehouse === value
+                    ? "bg-white text-emerald-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-3.5 size-4 text-slate-400" />
+            <input
+              type="text"
+              aria-label="Cari nama item"
+              value={itemSearch}
+              onChange={(event) => setItemSearch(event.target.value)}
+              placeholder="Cari nama item..."
+              className={`${input} pl-10 pr-10`}
+            />
+            {itemSearch && (
+              <button
+                type="button"
+                aria-label="Reset pencarian item"
+                title="Reset pencarian"
+                onClick={() => setItemSearch("")}
+                className="absolute right-2.5 top-2.5 grid size-6 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
         </div>
       )}
       {groups.map(([title, rows, getTitle, getMeta]: any) => (

@@ -1,0 +1,279 @@
+{
+  "../../../../@vite-plugin-pwa/virtual:pwa-register": [],
+  "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": [
+    "/build/assets/workbox-window.prod.es5-CkHxznpn.js"
+  ],
+  "resources/js/actions/App/Http/Controllers/Settings/ProfileController.ts": [
+    "/build/assets/profile-Dwr_fwUB.js"
+  ],
+  "resources/js/actions/App/Http/Controllers/Settings/SecurityController.ts": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController.ts": [
+    "/build/assets/confirm-password-B995hChi.js"
+  ],
+  "resources/js/actions/Laravel/Passkeys/Http/Controllers/PasskeyRegistrationController.ts": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/app.tsx": [],
+  "resources/js/components/StatCard.jsx": [
+    "/build/assets/Index-CcMJiST1.js"
+  ],
+  "resources/js/components/TransactionHistory.jsx": [
+    "/build/assets/TransactionHistory-BpwGx3Fx.js"
+  ],
+  "resources/js/components/alert-error.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/app-content.tsx": [],
+  "resources/js/components/app-logo-icon.tsx": [],
+  "resources/js/components/app-logo.tsx": [],
+  "resources/js/components/app-shell.tsx": [],
+  "resources/js/components/app-sidebar.tsx": [],
+  "resources/js/components/appearance-tabs.tsx": [
+    "/build/assets/appearance-BubYqRqX.js"
+  ],
+  "resources/js/components/camera-capture-dialog.tsx": [
+    "/build/assets/Index-G1GhCXkF.js"
+  ],
+  "resources/js/components/confirm-action-dialog.tsx": [
+    "/build/assets/AppLayout-2lRcxVpS.js"
+  ],
+  "resources/js/components/delete-user.tsx": [
+    "/build/assets/profile-Dwr_fwUB.js"
+  ],
+  "resources/js/components/heading.tsx": [
+    "/build/assets/heading-BKCTPZtU.js"
+  ],
+  "resources/js/components/input-error.tsx": [
+    "/build/assets/input-error-kjOtsSWi.js"
+  ],
+  "resources/js/components/manage-passkeys.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/manage-two-factor.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/nav-footer.tsx": [],
+  "resources/js/components/nav-main.tsx": [],
+  "resources/js/components/nav-user.tsx": [],
+  "resources/js/components/notification-menu.jsx": [
+    "/build/assets/AppLayout-2lRcxVpS.js"
+  ],
+  "resources/js/components/passkey-item.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/passkey-register.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/passkey-verify.tsx": [
+    "/build/assets/confirm-password-B995hChi.js"
+  ],
+  "resources/js/components/password-input.tsx": [
+    "/build/assets/password-input-BoWWpS-H.js"
+  ],
+  "resources/js/components/searchable-item-select.tsx": [
+    "/build/assets/searchable-item-select-3UmoD7Bb.js"
+  ],
+  "resources/js/components/text-link.tsx": [
+    "/build/assets/text-link-Cme2xW04.js"
+  ],
+  "resources/js/components/two-factor-recovery-codes.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/two-factor-setup-modal.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/ui/alert.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/ui/avatar.tsx": [],
+  "resources/js/components/ui/badge.tsx": [
+    "/build/assets/Index-DXjGAOq9.js"
+  ],
+  "resources/js/components/ui/button.tsx": [
+    "/build/assets/button-DRdOZmfE.js"
+  ],
+  "resources/js/components/ui/card.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/components/ui/checkbox.tsx": [
+    "/build/assets/login-Byao3s3h.js"
+  ],
+  "resources/js/components/ui/dialog.tsx": [
+    "/build/assets/dialog-BRHxsiws.js"
+  ],
+  "resources/js/components/ui/dropdown-menu.tsx": [
+    "/build/assets/dropdown-menu-Dez2j4dN.js"
+  ],
+  "resources/js/components/ui/input-otp.tsx": [
+    "/build/assets/use-two-factor-auth-D3qO1hpv.js"
+  ],
+  "resources/js/components/ui/input.tsx": [
+    "/build/assets/input-BKaRA9ml.js"
+  ],
+  "resources/js/components/ui/label.tsx": [
+    "/build/assets/label-3LcUKzgf.js"
+  ],
+  "resources/js/components/ui/placeholder-pattern.tsx": [
+    "/build/assets/dashboard-B8Y-MvAf.js"
+  ],
+  "resources/js/components/ui/separator.tsx": [
+    "/build/assets/separator-BjHZaLGc.js"
+  ],
+  "resources/js/components/ui/sheet.tsx": [],
+  "resources/js/components/ui/sidebar.tsx": [],
+  "resources/js/components/ui/skeleton.tsx": [],
+  "resources/js/components/ui/sonner.tsx": [],
+  "resources/js/components/ui/spinner.tsx": [
+    "/build/assets/spinner-Bs9t3kFL.js"
+  ],
+  "resources/js/components/ui/tooltip.tsx": [],
+  "resources/js/components/user-info.tsx": [],
+  "resources/js/components/user-menu-content.tsx": [],
+  "resources/js/hooks/use-appearance.tsx": [
+    "/build/assets/use-appearance-E0ZYowTZ.js"
+  ],
+  "resources/js/hooks/use-clipboard.ts": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/hooks/use-current-url.ts": [],
+  "resources/js/hooks/use-flash-toast.ts": [],
+  "resources/js/hooks/use-initials.tsx": [],
+  "resources/js/hooks/use-mobile-navigation.ts": [],
+  "resources/js/hooks/use-mobile.tsx": [],
+  "resources/js/hooks/use-two-factor-auth.ts": [
+    "/build/assets/use-two-factor-auth-D3qO1hpv.js"
+  ],
+  "resources/js/layouts/AppLayout.jsx": [
+    "/build/assets/AppLayout-2lRcxVpS.js"
+  ],
+  "resources/js/layouts/app-layout.tsx": [],
+  "resources/js/layouts/app/app-sidebar-layout.tsx": [],
+  "resources/js/layouts/auth-layout.tsx": [],
+  "resources/js/layouts/auth/auth-simple-layout.tsx": [],
+  "resources/js/layouts/settings/layout.tsx": [],
+  "resources/js/lib/date.ts": [
+    "/build/assets/date-TP9tjpoO.js"
+  ],
+  "resources/js/lib/utils.ts": [
+    "/build/assets/utils-DAgvUY2L.js"
+  ],
+  "resources/js/pages/AccessManagement/Index.tsx": [
+    "/build/assets/Index-DUIE24Gi.js"
+  ],
+  "resources/js/pages/Approvals/Index.tsx": [
+    "/build/assets/Index-DSsP1EMN.js"
+  ],
+  "resources/js/pages/Dashboard/Index.tsx": [
+    "/build/assets/Index-CcMJiST1.js"
+  ],
+  "resources/js/pages/Operations/Index.tsx": [
+    "/build/assets/Index-B2KiZxn9.js"
+  ],
+  "resources/js/pages/PermissionManagement/Index.tsx": [
+    "/build/assets/Index-BekbHHaB.js"
+  ],
+  "resources/js/pages/Reports/Index.tsx": [
+    "/build/assets/Index-DXjGAOq9.js"
+  ],
+  "resources/js/pages/RoleManagement/Index.tsx": [
+    "/build/assets/Index-CJE-p0OK.js"
+  ],
+  "resources/js/pages/StockIn/Index.tsx": [
+    "/build/assets/Index-G1GhCXkF.js"
+  ],
+  "resources/js/pages/StockOut/Index.tsx": [
+    "/build/assets/Index-BnbGRmUi.js"
+  ],
+  "resources/js/pages/StockRequests/Index.tsx": [
+    "/build/assets/Index-DYH_DNA6.js"
+  ],
+  "resources/js/pages/TransactionActivity/Index.tsx": [
+    "/build/assets/Index-DnZS-cCZ.js"
+  ],
+  "resources/js/pages/UserManagement/Index.tsx": [
+    "/build/assets/Index-CBenghWP.js"
+  ],
+  "resources/js/pages/WarehouseManagement/Index.tsx": [
+    "/build/assets/Index-DmDmSwo3.js"
+  ],
+  "resources/js/pages/WarehouseStock/Index.tsx": [
+    "/build/assets/Index-DVZNgr5X.js"
+  ],
+  "resources/js/pages/auth/confirm-password.tsx": [
+    "/build/assets/confirm-password-B995hChi.js"
+  ],
+  "resources/js/pages/auth/forgot-password.tsx": [
+    "/build/assets/forgot-password-Dvk5pVHT.js"
+  ],
+  "resources/js/pages/auth/login.tsx": [
+    "/build/assets/login-Byao3s3h.js"
+  ],
+  "resources/js/pages/auth/register.tsx": [
+    "/build/assets/register-BfsLT00C.js"
+  ],
+  "resources/js/pages/auth/reset-password.tsx": [
+    "/build/assets/reset-password-BqagzoX0.js"
+  ],
+  "resources/js/pages/auth/two-factor-challenge.tsx": [
+    "/build/assets/two-factor-challenge-DZY70zct.js"
+  ],
+  "resources/js/pages/auth/verify-email.tsx": [
+    "/build/assets/verify-email-NKKaWzy6.js"
+  ],
+  "resources/js/pages/dashboard.tsx": [
+    "/build/assets/dashboard-B8Y-MvAf.js"
+  ],
+  "resources/js/pages/settings/appearance.tsx": [
+    "/build/assets/appearance-BubYqRqX.js"
+  ],
+  "resources/js/pages/settings/inventory-valuation.tsx": [
+    "/build/assets/inventory-valuation-FQ85_A47.js"
+  ],
+  "resources/js/pages/settings/profile.tsx": [
+    "/build/assets/profile-Dwr_fwUB.js"
+  ],
+  "resources/js/pages/settings/security.tsx": [
+    "/build/assets/security-Bxfb-WLb.js"
+  ],
+  "resources/js/pages/welcome.tsx": [
+    "/build/assets/welcome-Bifb-WBv.js"
+  ],
+  "resources/js/routes/appearance/index.ts": [
+    "/build/assets/appearance-C9XoGQxF.js"
+  ],
+  "resources/js/routes/index.ts": [
+    "/build/assets/routes-Bb8kWkRa.js"
+  ],
+  "resources/js/routes/login/index.ts": [
+    "/build/assets/login-Byao3s3h.js"
+  ],
+  "resources/js/routes/password/confirm/index.ts": [
+    "/build/assets/confirm-Bb-3GoYL.js"
+  ],
+  "resources/js/routes/password/index.ts": [
+    "/build/assets/password-BWdBegUB.js"
+  ],
+  "resources/js/routes/profile/index.ts": [
+    "/build/assets/profile-C0rmUldE.js"
+  ],
+  "resources/js/routes/register/index.ts": [
+    "/build/assets/register-BfsLT00C.js"
+  ],
+  "resources/js/routes/security/index.ts": [
+    "/build/assets/security-C4aqlBsk.js"
+  ],
+  "resources/js/routes/two-factor/index.ts": [
+    "/build/assets/use-two-factor-auth-D3qO1hpv.js"
+  ],
+  "resources/js/routes/two-factor/login/index.ts": [
+    "/build/assets/use-two-factor-auth-D3qO1hpv.js"
+  ],
+  "resources/js/routes/verification/index.ts": [
+    "/build/assets/verification-B4VXILzx.js"
+  ],
+  "resources/js/wayfinder/index.ts": [
+    "/build/assets/wayfinder-BrhwLpUM.js"
+  ]
+}

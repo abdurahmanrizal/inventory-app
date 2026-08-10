@@ -4,6 +4,7 @@ import WarehouseStockController from './WarehouseStockController'
 import TransactionActivityController from './TransactionActivityController'
 import InventoryReportController from './InventoryReportController'
 import UserManagementController from './UserManagementController'
+import WarehouseManagementController from './WarehouseManagementController'
 import AccessManagementController from './AccessManagementController'
 import StockTransactionController from './StockTransactionController'
 import ApprovalController from './ApprovalController'
@@ -17,6 +18,7 @@ const Controllers = {
     TransactionActivityController: Object.assign(TransactionActivityController, TransactionActivityController),
     InventoryReportController: Object.assign(InventoryReportController, InventoryReportController),
     UserManagementController: Object.assign(UserManagementController, UserManagementController),
+    WarehouseManagementController: Object.assign(WarehouseManagementController, WarehouseManagementController),
     AccessManagementController: Object.assign(AccessManagementController, AccessManagementController),
     StockTransactionController: Object.assign(StockTransactionController, StockTransactionController),
     ApprovalController: Object.assign(ApprovalController, ApprovalController),

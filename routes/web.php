@@ -9,6 +9,7 @@ use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\StockTransactionController;
 use App\Http\Controllers\TransactionActivityController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\WarehouseManagementController;
 use App\Http\Controllers\WarehouseStockController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('user-management', [UserManagementController::class, 'store'])->name('user-management.store');
     Route::put('user-management/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
     Route::delete('user-management/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+    Route::resource('warehouse-management', WarehouseManagementController::class)
+        ->parameters(['warehouse-management' => 'warehouse'])
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::get('access-management', [AccessManagementController::class, 'index'])->name('access-management.index');
     Route::get('role-management', [AccessManagementController::class, 'roles'])->name('role-management.index');
     Route::get('permission-management', [AccessManagementController::class, 'permissions'])->name('permission-management.index');

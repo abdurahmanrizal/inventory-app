@@ -104,7 +104,8 @@ class FullWmsWorkflowTest extends TestCase
                 ->where('initialItemWarehouse', 'dry')
                 ->where('records.items.per_page', 10)
                 ->where('records.items.total', 13)
-                ->has('records.items.data', 10));
+                ->has('records.items.data', 10)
+                ->where('records.items.next_page_url', fn ($url) => str_contains($url, 'master=item') && str_contains($url, 'item_warehouse=dry')));
 
         $this->actingAs($user)->get('/operations/master-data?master=item&item_warehouse=wet')
             ->assertOk()
@@ -112,6 +113,21 @@ class FullWmsWorkflowTest extends TestCase
                 ->where('initialItemWarehouse', 'wet')
                 ->where('records.items.total', 4)
                 ->has('records.items.data', 4));
+
+        $this->actingAs($user)->get('/operations/master-data?master=item&item_warehouse=dry&item_search=Dry%2012')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialItemWarehouse', 'dry')
+                ->where('initialItemSearch', 'Dry 12')
+                ->where('records.items.total', 1)
+                ->has('records.items.data', 1)
+                ->where('records.items.data.0.name', 'Dry 12'));
+
+        $this->actingAs($user)->get('/operations/master-data?master=item&item_warehouse=dry&item_search=Dry')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.items.total', 12)
+                ->where('records.items.next_page_url', fn ($url) => str_contains($url, 'item_search=Dry') && str_contains($url, 'item_warehouse=dry')));
     }
 
     public function test_warehouse_admin_cannot_access_or_create_master_data(): void

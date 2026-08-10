@@ -25,10 +25,23 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import ConfirmActionDialog from "../components/confirm-action-dialog";
 import NotificationMenu from "../components/notification-menu";
 import clsx from "clsx";
+
+const subscribeOnlineStatus = (callback) => {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+};
+
+const getOnlineStatus = () => navigator.onLine;
+const getServerOnlineStatus = () => true;
 
 const links = [
   [
@@ -72,6 +85,12 @@ const links = [
     PackageSearch,
     (url) =>
       url.startsWith("/operations/master-data") && url.includes("master=item"),
+  ],
+  [
+    "Master Gudang",
+    "/warehouse-management",
+    Warehouse,
+    (url) => url.startsWith("/warehouse-management"),
   ],
   [
     "Master Lokasi",
@@ -146,23 +165,14 @@ export default function AppLayout({ children, title, fullWidth = false }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [accessOpen, setAccessOpen] = useState(null);
-  const [online, setOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
+  const online = useSyncExternalStore(
+    subscribeOnlineStatus,
+    getOnlineStatus,
+    getServerOnlineStatus,
   );
   const { url, props } = usePage();
   const user = props.auth?.user;
 
-  useEffect(() => {
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
   const role = user?.role || "superadmin";
   const permissions = props.auth?.permissions || [];
   const hasPermission = (permission) =>
@@ -190,7 +200,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-slate-900">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col overflow-hidden bg-[#0b1526] text-white shadow-2xl shadow-slate-950/10 transition-transform duration-300 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden bg-[#0b1526] text-white shadow-2xl shadow-slate-950/10 transition-transform duration-300 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_65%)]" />
         <div className="relative flex h-20 items-center justify-between border-b border-white/[0.07] px-6">
@@ -372,7 +382,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
         />
       )}
 
-      <main className="min-h-screen min-w-0 w-full overflow-x-hidden lg:pl-72">
+      <main className="min-h-screen min-w-0 w-full overflow-x-hidden lg:ml-64 lg:w-[calc(100%-16rem)]">
         <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <button
             aria-label="Buka menu"
@@ -411,7 +421,7 @@ export default function AppLayout({ children, title, fullWidth = false }) {
           </div>
         )}
         <div
-          className={`w-full p-4 sm:p-6 lg:p-8 ${fullWidth ? "" : "max-w-[1440px]"}`}
+          className={`w-full p-4 sm:p-6 ${fullWidth ? "" : "max-w-[1440px]"}`}
         >
           {children}
         </div>

@@ -1,17 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
-  KeyRound,
   Pencil,
   Plus,
   Search,
   ShieldCheck,
   Trash2,
-  UserRound,
   UsersRound,
-  Warehouse,
+  X,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { toast } from "sonner";
 import ConfirmActionDialog from "../../components/confirm-action-dialog";
 import AppLayout from "../../layouts/AppLayout";
@@ -28,10 +26,19 @@ const roleTone: Record<string, string> = {
   finance: "bg-cyan-50 text-cyan-700",
 };
 
-export default function Index({ users, warehouses, roles }: any) {
+export default function Index({
+  users,
+  warehouses,
+  roles,
+  filters,
+  roleCounts,
+  totalUsers,
+}: any) {
   const [editing, setEditing] = useState<any>(null);
   const [deleting, setDeleting] = useState<any>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(filters?.search || "");
+  const [activeRole, setActiveRole] = useState(filters?.role || "");
+  const initialSearch = useRef(true);
   const form = useForm({
     name: "",
     email: "",
@@ -40,29 +47,43 @@ export default function Index({ users, warehouses, roles }: any) {
     password: "",
     password_confirmation: "",
   });
-  const visibleUsers = useMemo(
-    () =>
-      users.data.filter((user: any) =>
-        `${user.name} ${user.email} ${user.role} ${user.warehouse?.name || ""}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      ),
-    [users.data, search],
-  );
+  useEffect(() => {
+    if (initialSearch.current) {
+      initialSearch.current = false;
+
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      router.get(
+        "/user-management",
+        {
+          search: search.trim() || undefined,
+          role: activeRole || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
+      );
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [search, activeRole]);
+
+  const selectRole = (role: string) => {
+    setActiveRole(role);
+  };
   const reset = () => {
     setEditing(null);
     form.reset();
     form.clearErrors();
   };
-  const createNew = () => {
-    reset();
-    setSearch("");
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById("user-form")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
-  };
+  // const createNew = () => {
+  //   reset();
+  //   window.requestAnimationFrame(() =>
+  //     document
+  //       .getElementById("user-form")
+  //       ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+  //   );
+  // };
   const edit = (user: any) => {
     setEditing(user);
     form.setData({
@@ -87,9 +108,12 @@ export default function Index({ users, warehouses, roles }: any) {
       },
       onError: (errors: any) => toast.error(Object.values(errors)[0] as string),
     };
-    editing
-      ? form.put(`/user-management/${editing.id}`, options)
-      : form.post("/user-management", options);
+
+    if (editing) {
+      form.put(`/user-management/${editing.id}`, options);
+    } else {
+      form.post("/user-management", options);
+    }
   };
   const remove = () =>
     deleting &&
@@ -121,7 +145,7 @@ export default function Index({ users, warehouses, roles }: any) {
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3">
             <p className="text-xs text-slate-400">Total pengguna</p>
-            <p className="mt-1 text-xl font-semibold">{users.total}</p>
+            <p className="mt-1 text-xl font-semibold">{totalUsers}</p>
           </div>
         </div>
       </section>
@@ -181,12 +205,13 @@ export default function Index({ users, warehouses, roles }: any) {
                   form.setData({
                     ...form.data,
                     role: e.target.value,
-                    warehouse_id:
-                      ["superadmin", "finance", "warehouse_manager"].includes(
-                        e.target.value,
-                      )
-                        ? ""
-                        : form.data.warehouse_id,
+                    warehouse_id: [
+                      "superadmin",
+                      "finance",
+                      "warehouse_manager",
+                    ].includes(e.target.value)
+                      ? ""
+                      : form.data.warehouse_id,
                   })
                 }
               >
@@ -197,7 +222,7 @@ export default function Index({ users, warehouses, roles }: any) {
                 ))}
               </select>
             </label>
-            {!['superadmin', 'finance', 'warehouse_manager'].includes(
+            {!["superadmin", "finance", "warehouse_manager"].includes(
               form.data.role,
             ) && (
               <label className="block space-y-1.5">
@@ -292,30 +317,87 @@ export default function Index({ users, warehouses, roles }: any) {
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <label className="relative">
+              <div className="relative">
                 <Search
                   size={16}
                   className="absolute left-3.5 top-3 text-slate-400"
                 />
                 <input
-                  className={`${input} pl-10 sm:w-64`}
+                  aria-label="Cari pengguna"
+                  className={`${input} pl-10 pr-10 sm:w-64`}
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setActiveRole("");
+                  }}
                   placeholder="Cari pengguna..."
                 />
-              </label>
-              <button
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Reset pencarian pengguna"
+                    title="Reset pencarian"
+                    onClick={() => {
+                      setSearch("");
+                      setActiveRole("");
+                    }}
+                    className="absolute right-2.5 top-2.5 grid size-6 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+              {/*<button
                 type="button"
                 onClick={createNew}
                 className="inline-flex h-11 items-center justify-center whitespace-nowrap gap-2 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-600"
               >
                 <Plus size={16} /> Buat user baru
-              </button>
+              </button>*/}
             </div>
           </div>
-          {visibleUsers.length ? (
+          <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => selectRole("")}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${!activeRole ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"}`}
+              >
+                Semua
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] ${!activeRole ? "bg-white/20" : "bg-slate-100"}`}
+                >
+                  {Object.values(roleCounts || {}).reduce(
+                    (total: number, count: any) => total + Number(count),
+                    0,
+                  )}
+                </span>
+              </button>
+              {roles.map((role: any) => (
+                <button
+                  key={role.value}
+                  type="button"
+                  onClick={() => selectRole(role.value)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${activeRole === role.value ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"}`}
+                >
+                  {role.label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeRole === role.value ? "bg-white/20" : "bg-slate-100"}`}
+                  >
+                    {Number(roleCounts?.[role.value] || 0)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="border-b border-slate-100 px-5 py-3 text-xs text-slate-500">
+            Menampilkan {users.from || 0}–{users.to || 0} dari {users.total}{" "}
+            pengguna
+            {search ? ` untuk pencarian “${filters.search}”` : ""}.
+          </div>
+          {users.data.length ? (
             <div className="divide-y divide-slate-100">
-              {visibleUsers.map((user: any) => (
+              {users.data.map((user: any) => (
                 <div
                   key={user.id}
                   className="flex flex-col gap-4 px-5 py-4 transition hover:bg-slate-50/70 sm:flex-row sm:items-center"
@@ -341,7 +423,9 @@ export default function Index({ users, warehouses, roles }: any) {
                           ? "Manajer Gudang Utama"
                           : user.role
                               .replaceAll("_", " ")
-                              .replace(/\b\w/g, (char: string) => char.toUpperCase())}
+                              .replace(/\b\w/g, (char: string) =>
+                                char.toUpperCase(),
+                              )}
                     </span>
                     <p className="mt-1.5 text-xs text-slate-400">
                       {user.warehouse?.name || "Akses seluruh gudang"}
@@ -379,6 +463,8 @@ export default function Index({ users, warehouses, roles }: any) {
               <Link
                 key={index}
                 href={link.url || "#"}
+                preserveState
+                preserveScroll
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${link.active ? "bg-emerald-500 text-white" : link.url ? "border border-slate-200 text-slate-600" : "text-slate-300"}`}
                 dangerouslySetInnerHTML={{ __html: link.label }}
               />

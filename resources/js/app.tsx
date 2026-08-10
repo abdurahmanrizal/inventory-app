@@ -37,6 +37,7 @@ createInertiaApp({
       "TransactionActivity/",
       "StockRequests",
       "UserManagement/",
+      "WarehouseManagement/",
       "AccessManagement/",
       "RoleManagement/",
       "PermissionManagement/",
@@ -58,8 +59,10 @@ createInertiaApp({
         return AuthLayout;
       case name.startsWith("settings/"):
         return [AppLayout, SettingsLayout];
-      default:
+      case name === "dashboard":
         return AppLayout;
+      default:
+        return null;
     }
   },
   strictMode: true,

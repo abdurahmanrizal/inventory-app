@@ -63,11 +63,13 @@ class StockTransactionController extends Controller
         }
 
         if ($type === TransactionType::StockIn->value) {
-            $itemWarehouseType = match ($role) {
-                UserRole::WarehouseAdminDry => 'dry',
-                UserRole::WarehouseAdminWet => 'wet',
-                default => null,
-            };
+            $itemWarehouseType = $isWarehouseAdmin
+                ? ($user->warehouse?->inventory_type ?? match ($role) {
+                    UserRole::WarehouseAdminDry => 'dry',
+                    UserRole::WarehouseAdminWet => 'wet',
+                    default => null,
+                })
+                : null;
             $availableItems = Item::query()
                 ->where('is_active', true)
                 ->when($itemWarehouseType, fn ($query) => $query->whereIn('warehouse_type', [$itemWarehouseType, 'both']))
@@ -156,11 +158,13 @@ class StockTransactionController extends Controller
                 $data['destination_warehouse_id'] = $user->warehouse_id;
             }
             abort_unless($data['destination_warehouse_id'] ?? null, 422, 'Gudang tujuan wajib dipilih.');
-            $allowedItemWarehouseType = match ($role) {
-                UserRole::WarehouseAdminDry => 'dry',
-                UserRole::WarehouseAdminWet => 'wet',
-                default => null,
-            };
+            $allowedItemWarehouseType = $isWarehouseAdmin
+                ? ($user->warehouse?->inventory_type ?? match ($role) {
+                    UserRole::WarehouseAdminDry => 'dry',
+                    UserRole::WarehouseAdminWet => 'wet',
+                    default => null,
+                })
+                : null;
             if ($allowedItemWarehouseType) {
                 $invalidItemExists = Item::query()
                     ->whereIn('id', collect($data['details'])->pluck('item_id'))
