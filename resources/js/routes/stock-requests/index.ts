@@ -85,7 +85,7 @@ index.form = indexForm
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-export const deliveryNote = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+export const deliveryNote = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -100,7 +100,7 @@ deliveryNote.definition = {
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.url = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+deliveryNote.url = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { stockRequest: args }
     }
@@ -133,7 +133,7 @@ deliveryNote.url = (args: { stockRequest: number | { id: number } } | [stockRequ
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.get = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+deliveryNote.get = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -143,7 +143,7 @@ deliveryNote.get = (args: { stockRequest: number | { id: number } } | [stockRequ
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNote.head = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+deliveryNote.head = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: deliveryNote.url(args, options),
     method: 'head',
 })
@@ -153,7 +153,7 @@ deliveryNote.head = (args: { stockRequest: number | { id: number } } | [stockReq
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-const deliveryNoteForm = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+const deliveryNoteForm = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -163,7 +163,7 @@ const deliveryNoteForm = (args: { stockRequest: number | { id: number } } | [sto
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNoteForm.get = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+deliveryNoteForm.get = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, options),
     method: 'get',
 })
@@ -173,7 +173,7 @@ deliveryNoteForm.get = (args: { stockRequest: number | { id: number } } | [stock
 * @see app/Http/Controllers/OperationsController.php:37
 * @route '/stock-requests/{stockRequest}/delivery-note'
 */
-deliveryNoteForm.head = (args: { stockRequest: number | { id: number } } | [stockRequest: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+deliveryNoteForm.head = (args: { stockRequest: string | number | { id: string | number } } | [stockRequest: string | number | { id: string | number } ] | string | number | { id: string | number }, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: deliveryNote.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'HEAD',

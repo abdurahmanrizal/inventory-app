@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Warehouse extends Model
 {
-    protected $fillable = ['code', 'name', 'type', 'main_warehouse_id', 'is_active'];
+    protected $fillable = ['code', 'name', 'type', 'inventory_type', 'main_warehouse_id', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
 
@@ -20,5 +20,15 @@ class Warehouse extends Model
     public function stocks(): HasMany
     {
         return $this->hasMany(CurrentStock::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
     }
 }

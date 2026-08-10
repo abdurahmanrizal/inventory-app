@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -51,5 +52,51 @@ class UserManagementTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::Superadmin]);
         $this->actingAs($admin)->delete("/user-management/{$admin->id}")->assertSessionHasErrors('user');
         $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_search_and_role_tabs_filter_users_before_pagination(): void
+    {
+        $admin = User::factory()->create(['name' => 'Administrator', 'role' => UserRole::Superadmin]);
+        $warehouse = Warehouse::create(['code' => 'USR-FILTER', 'name' => 'Gudang Filter', 'type' => 'unit']);
+        foreach (range(1, 25) as $index) {
+            User::factory()->create([
+                'name' => 'Pengguna Umum '.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                'email' => "umum{$index}@wms.test",
+                'role' => UserRole::UnitUser,
+                'warehouse_id' => $warehouse->id,
+            ]);
+        }
+        $target = User::factory()->create([
+            'name' => 'Pengguna Target Unik',
+            'email' => 'target-khusus@wms.test',
+            'role' => UserRole::Finance,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/user-management?search=target-khusus')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.search', 'target-khusus')
+                ->where('filters.role', '')
+                ->has('users.data', 1)
+                ->where('users.data.0.id', $target->id)
+                ->where('users.total', 1)
+                ->where('roleCounts.finance', 1));
+
+        $this->actingAs($admin)
+            ->get('/user-management?role=finance')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.role', 'finance')
+                ->has('users.data', 1)
+                ->where('users.data.0.id', $target->id));
+
+        $this->actingAs($admin)
+            ->get('/user-management?search=Pengguna&role=unit_user')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('users.total', 25)
+                ->has('users.data', 20)
+                ->where('users.next_page_url', fn ($url) => str_contains($url, 'search=Pengguna') && str_contains($url, 'role=unit_user')));
     }
 }

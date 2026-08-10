@@ -32,10 +32,10 @@ class DatabaseSeeder extends Seeder
     private function seedWarehouses(): array
     {
         $dry = Warehouse::updateOrCreate(['code' => 'WH-DRY'], [
-            'name' => 'Gudang Utama Kering', 'type' => 'main', 'main_warehouse_id' => null, 'is_active' => true,
+            'name' => 'Gudang Utama Kering', 'type' => 'main', 'inventory_type' => 'dry', 'main_warehouse_id' => null, 'is_active' => true,
         ]);
         $wet = Warehouse::updateOrCreate(['code' => 'WH-WET'], [
-            'name' => 'Gudang Utama Basah', 'type' => 'main', 'main_warehouse_id' => null, 'is_active' => true,
+            'name' => 'Gudang Utama Basah', 'type' => 'main', 'inventory_type' => 'wet', 'main_warehouse_id' => null, 'is_active' => true,
         ]);
 
         return [

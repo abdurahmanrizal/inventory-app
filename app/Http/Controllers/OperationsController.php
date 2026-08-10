@@ -171,6 +171,7 @@ class OperationsController extends Controller
         if (! in_array($itemWarehouse, ['dry', 'wet'], true)) {
             $itemWarehouse = 'dry';
         }
+        $itemSearch = trim($request->string('item_search')->toString());
 
         $base = [
             'module' => $module,
@@ -212,6 +213,7 @@ class OperationsController extends Controller
             ],
             'valuationMethod' => InventorySetting::current()->valuation_method->value,
             'initialItemWarehouse' => $itemWarehouse,
+            'initialItemSearch' => $itemSearch,
             'requestStockItems' => $module === 'fulfillment'
                 ? CurrentStock::query()
                     ->with([
@@ -277,6 +279,7 @@ class OperationsController extends Controller
                 'locations' => Location::with('warehouse:id,name')->latest()->get(),
                 'items' => Item::with('category:id,name')
                     ->whereIn('warehouse_type', [$itemWarehouse, 'both'])
+                    ->when($itemSearch, fn ($query) => $query->where('name', 'like', "%{$itemSearch}%"))
                     ->latest()
                     ->paginate(10, ['*'], 'item_page')
                     ->withQueryString(),

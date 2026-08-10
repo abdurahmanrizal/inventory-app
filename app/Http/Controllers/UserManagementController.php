@@ -19,13 +19,40 @@ class UserManagementController extends Controller
     {
         $this->authorizeSuperadmin($request);
 
+        $search = trim($request->string('search')->toString());
+        $role = $request->string('role')->toString();
+        $validRoles = collect(UserRole::cases())->pluck('value');
+        abort_if($role !== '' && ! $validRoles->contains($role), 422, 'Filter role tidak valid.');
+
+        $query = User::query()
+            ->with('warehouse:id,code,name,type')
+            ->when($search, fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('role', 'like', "%{$search}%")
+                ->orWhereHas('warehouse', fn ($query) => $query
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%"))));
+
+        $roleCounts = (clone $query)
+            ->selectRaw('role, COUNT(*) as aggregate')
+            ->groupBy('role')
+            ->pluck('aggregate', 'role');
+
         return Inertia::render('UserManagement/Index', [
-            'users' => User::with('warehouse:id,code,name,type')->orderBy('name')->paginate(20),
+            'users' => $query
+                ->when($role, fn ($query) => $query->where('role', $role))
+                ->orderBy('name')
+                ->paginate(20)
+                ->withQueryString(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'type']),
             'roles' => collect(UserRole::cases())->map(fn (UserRole $role) => [
                 'value' => $role->value,
                 'label' => UserRole::label($role),
             ]),
+            'filters' => ['search' => $search, 'role' => $role],
+            'roleCounts' => $roleCounts,
+            'totalUsers' => User::count(),
         ]);
     }
 
